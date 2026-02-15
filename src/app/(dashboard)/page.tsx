@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { format } from "date-fns";
-import { Globe02, ChevronRight, AlertCircle } from "@untitledui/icons";
+import { Globe02, ChevronRight, AlertCircle, Plus } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
+import { Button } from "@/components/base/buttons/button";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { useUniverses } from "@/hooks/use-universes";
 import type { Universe } from "@/types";
-import { CreateUniverseDialog } from "./_components/create-universe-dialog";
 
 function UniverseCard({ universe }: { universe: Universe }) {
     return (
@@ -59,7 +59,9 @@ export default function DashboardPage() {
                         Manage your F1 career mode universes.
                     </p>
                 </div>
-                <CreateUniverseDialog />
+                <Button href="/universe/new" size="md" iconLeading={Plus}>
+                    New Universe
+                </Button>
             </div>
 
             <div className="mt-8">
@@ -95,7 +97,9 @@ export default function DashboardPage() {
                                 </EmptyState.Description>
                             </EmptyState.Content>
                             <EmptyState.Footer>
-                                <CreateUniverseDialog />
+                                <Button href="/universe/new" size="md" iconLeading={Plus}>
+                                    New Universe
+                                </Button>
                             </EmptyState.Footer>
                         </EmptyState>
                     </div>

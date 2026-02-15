@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import type { CreateUniverseForm, UniverseUpdate } from "@/types";
+import type { CreateUniverseInput } from "@/lib/validators";
+import type { UniverseUpdate } from "@/types";
 
 const supabase = createClient();
 
@@ -45,7 +46,7 @@ export function useCreateUniverse() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (form: CreateUniverseForm) => {
+        mutationFn: async (form: CreateUniverseInput) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Not authenticated");
 
@@ -60,6 +61,9 @@ export function useCreateUniverse() {
                 .select()
                 .single();
             if (error) throw error;
+
+            await supabase.rpc("fn_seed_default_points", { p_universe_id: data.id });
+
             return data;
         },
         onSuccess: () => {

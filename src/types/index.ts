@@ -71,12 +71,6 @@ export type ResetType = Enums<"reset_type">;
 
 // ─── Form types ──────────────────────────────────────────────────────────────
 
-export type CreateUniverseForm = {
-    name: string;
-    description?: string;
-    start_year: number;
-};
-
 export type CreateSeasonForm = {
     universe_id: string;
     year: number;

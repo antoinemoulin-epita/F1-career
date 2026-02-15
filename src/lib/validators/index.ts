@@ -10,3 +10,4 @@ export type CreateUniverseInput = z.infer<typeof createUniverseSchema>;
 
 export { teamSchema, teamFormDefaults, type TeamFormValues } from "./team";
 export { driverSchema, driverFormDefaults, type DriverFormValues } from "./driver";
+export { carSchema, carFormDefaults, type CarFormValues } from "./car";
