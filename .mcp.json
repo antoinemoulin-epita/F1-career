@@ -1,0 +1,18 @@
+{
+    "mcpServers": {
+        "supabase": {
+            "type": "http",
+            "url": "https://mcp.supabase.com/mcp?project_ref=sosovldyqqhrdvycowsw",
+            "headers": {
+                "Authorization": "Bearer sbp_97af1cafc796cf01037abfa3b6505303b5f6f840"
+            }
+        },
+        "untitledui": {
+            "type": "http",
+            "url": "https://www.untitledui.com/react/api/mcp",
+            "headers": {
+                "Authorization": "Bearer 11f12cfd57db4e58fa0719277ecfc182"
+            }
+        }
+    }
+}
