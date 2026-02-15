@@ -12,6 +12,8 @@ export const historyKeys = {
     champions: (universeId: string) => ["history", "champions", { universeId }] as const,
     allTimeStats: (universeId: string) => ["history", "all-time-stats", { universeId }] as const,
     raceWins: (universeId: string) => ["history", "race-wins", { universeId }] as const,
+    archivedSeason: (universeId: string, year: number) =>
+        ["history", "archived-season", { universeId, year }] as const,
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -87,6 +89,26 @@ export function useChampions(universeId: string) {
             return data;
         },
         enabled: !!universeId,
+    });
+}
+
+// ─── Hook : useArchivedSeason ────────────────────────────────────────────────
+
+export function useArchivedSeason(universeId: string, year: number) {
+    return useQuery({
+        queryKey: historyKeys.archivedSeason(universeId, year),
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("seasons")
+                .select("id, year, gp_count, status")
+                .eq("universe_id", universeId)
+                .eq("year", year)
+                .eq("status", "completed")
+                .single();
+            if (error) throw error;
+            return data as { id: string; year: number; gp_count: number; status: string };
+        },
+        enabled: !!universeId && year > 0,
     });
 }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     AlertCircle,
+    Calendar,
     ChevronRight,
     Flag06,
     Star01,
@@ -198,7 +199,7 @@ function HistoryPageContent() {
                     </div>
 
                     {/* Navigation cards */}
-                    <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <NavCard
                             href={`/history/champions?${basePath}`}
                             icon={Trophy01}
@@ -216,6 +217,12 @@ function HistoryPageContent() {
                             icon={Star01}
                             label="Records"
                             sublabel="Decouvrir"
+                        />
+                        <NavCard
+                            href={`/history/seasons?${basePath}`}
+                            icon={Calendar}
+                            label="Saisons"
+                            sublabel={`${seasonCount} saison${seasonCount !== 1 ? "s" : ""}`}
                         />
                     </div>
                 </>
