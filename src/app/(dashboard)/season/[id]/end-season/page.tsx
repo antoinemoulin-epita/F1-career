@@ -27,7 +27,8 @@ import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-ic
 import { useSeason } from "@/hooks/use-seasons";
 import { useDrivers } from "@/hooks/use-drivers";
 import { useTeams } from "@/hooks/use-teams";
-import { useDriverStandings, useConstructorStandings, useNarrativeArcs } from "@/hooks/use-standings";
+import { useDriverStandings, useConstructorStandings } from "@/hooks/use-standings";
+import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
 import { useSurperformance } from "@/hooks/use-surperformance";
 import { useArchiveSeason, type DriverEvolution, type TeamBudgetChange } from "@/hooks/use-end-season";
 import { useClipboard } from "@/hooks/use-clipboard";

@@ -10,6 +10,7 @@ import {
     Car01,
     ChevronRight,
     CloudRaining01,
+    File06,
     Flag06,
     Target04,
     Trophy01,
@@ -31,8 +32,15 @@ import { useDriverPredictions } from "@/hooks/use-predictions";
 import {
     useDriverStandings,
     useConstructorStandings,
-    useNarrativeArcs,
 } from "@/hooks/use-standings";
+import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
+import { useNews } from "@/hooks/use-news";
+import {
+    arcTypeLabels,
+    arcTypeBadgeColor,
+    arcStatusLabels,
+    arcStatusColor,
+} from "@/lib/constants/arc-labels";
 import type { SeasonStatus, ArcType, ArcStatus } from "@/types";
 import type { FC } from "react";
 
@@ -74,39 +82,6 @@ const statusLabel: Record<SeasonStatus, string> = {
     completed: "Terminee",
 };
 
-const arcTypeLabels: Record<string, string> = {
-    transfer: "Transfert",
-    rivalry: "Rivalite",
-    technical: "Technique",
-    sponsor: "Sponsor",
-    entry_exit: "Entree/Sortie",
-    drama: "Drame",
-    regulation: "Reglementation",
-    other: "Autre",
-};
-
-const arcTypeBadgeColor: Record<string, "blue" | "orange" | "purple" | "brand" | "indigo" | "pink" | "warning" | "gray"> = {
-    transfer: "blue",
-    rivalry: "orange",
-    technical: "purple",
-    sponsor: "brand",
-    entry_exit: "indigo",
-    drama: "pink",
-    regulation: "warning",
-    other: "gray",
-};
-
-const arcStatusLabels: Record<string, string> = {
-    signal: "Signal",
-    developing: "En cours",
-    confirmed: "Confirme",
-};
-
-const arcStatusColor: Record<string, "gray" | "warning" | "brand"> = {
-    signal: "gray",
-    developing: "warning",
-    confirmed: "brand",
-};
 
 // ─── RainBadge ──────────────────────────────────────────────────────────────
 
@@ -567,6 +542,7 @@ export default function SeasonDashboardPage() {
     const { data: constructorStandings } = useConstructorStandings(seasonId);
     const { data: driverPredictions } = useDriverPredictions(seasonId);
     const { data: narrativeArcs } = useNarrativeArcs(season?.universe_id ?? "");
+    const { data: newsData } = useNews(seasonId);
 
     // ─── Derived state ──────────────────────────────────────────────────────
 
@@ -667,7 +643,7 @@ export default function SeasonDashboardPage() {
             </div>
 
             {/* Nav cards */}
-            <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
+            <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
                 <NavCard
                     href={`/season/${seasonId}/calendar`}
                     icon={Calendar}
@@ -697,6 +673,12 @@ export default function SeasonDashboardPage() {
                     icon={Target04}
                     label="Predictions"
                     count={driverPredictions?.length ?? 0}
+                />
+                <NavCard
+                    href={`/season/${seasonId}/news`}
+                    icon={File06}
+                    label="News"
+                    count={newsData?.length ?? 0}
                 />
             </div>
 

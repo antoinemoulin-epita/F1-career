@@ -1,0 +1,28 @@
+import { z } from "zod";
+
+export const rookiePoolSchema = z
+    .object({
+        first_name: z.string().optional().or(z.literal("")),
+        last_name: z.string().min(2, "Le nom doit faire au moins 2 caracteres"),
+        nationality: z.string().optional().or(z.literal("")),
+        birth_year: z.number().int().min(1980).max(2015).nullable().optional(),
+        potential_min: z.number().min(0).max(10),
+        potential_max: z.number().min(0).max(10),
+        available_from_year: z.number().int().min(2000).max(2100).nullable().optional(),
+    })
+    .refine((d) => d.potential_min <= d.potential_max, {
+        message: "Le potentiel min doit etre <= au potentiel max",
+        path: ["potential_min"],
+    });
+
+export type RookiePoolFormValues = z.infer<typeof rookiePoolSchema>;
+
+export const rookiePoolFormDefaults: RookiePoolFormValues = {
+    first_name: "",
+    last_name: "",
+    nationality: "",
+    birth_year: null,
+    potential_min: 3,
+    potential_max: 7,
+    available_from_year: null,
+};

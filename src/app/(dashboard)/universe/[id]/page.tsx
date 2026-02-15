@@ -11,6 +11,7 @@ import {
     Edit05,
     Flag06,
     Globe02,
+    HardDrive,
     Plus,
     Trash02,
 } from "@untitledui/icons";
@@ -545,6 +546,54 @@ export default function UniverseDetailPage() {
                     <EditUniverseDialog universe={universe} />
                     <DeleteUniverseDialog universe={universe} />
                 </div>
+            </div>
+
+            {/* Divider */}
+            <div className="my-8 border-t border-secondary" />
+
+            {/* Rookie pool link */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold text-primary">Pool Rookies</h2>
+                    <p className="mt-0.5 text-sm text-tertiary">
+                        Gerez les jeunes pilotes disponibles au recrutement.
+                    </p>
+                </div>
+                <Button size="md" color="secondary" href={`/universe/${universe.id}/rookies`}>
+                    Voir le pool
+                </Button>
+            </div>
+
+            {/* Divider */}
+            <div className="my-8 border-t border-secondary" />
+
+            {/* Narrative arcs link */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold text-primary">Arcs narratifs</h2>
+                    <p className="mt-0.5 text-sm text-tertiary">
+                        Gerez les storylines de votre univers.
+                    </p>
+                </div>
+                <Button size="md" color="secondary" href={`/universe/${universe.id}/arcs`}>
+                    Voir les arcs
+                </Button>
+            </div>
+
+            {/* Divider */}
+            <div className="my-8 border-t border-secondary" />
+
+            {/* Backup link */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold text-primary">Backup</h2>
+                    <p className="mt-0.5 text-sm text-tertiary">
+                        Exportez ou importez les donnees de votre univers.
+                    </p>
+                </div>
+                <Button size="md" color="secondary" href={`/universe/${universe.id}/backup`}>
+                    Gerer
+                </Button>
             </div>
 
             {/* Divider */}

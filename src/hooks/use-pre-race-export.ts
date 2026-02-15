@@ -5,7 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useRace } from "@/hooks/use-qualifying";
 import { useSeason } from "@/hooks/use-seasons";
-import { useDriverStandings, useConstructorStandings, useNarrativeArcs } from "@/hooks/use-standings";
+import { useDriverStandings, useConstructorStandings } from "@/hooks/use-standings";
+import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
 import { useDriverPredictions, useConstructorPredictions } from "@/hooks/use-predictions";
 import type {
     PreRaceExportData,
