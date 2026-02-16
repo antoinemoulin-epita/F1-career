@@ -9,6 +9,7 @@ import { Toggle } from "@/components/base/toggle/toggle";
 import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
 import { useCreateTeam, useUpdateTeam } from "@/hooks/use-teams";
 import { teamSchema, teamFormDefaults, type TeamFormValues } from "@/lib/validators";
+import { nationalityItems } from "@/lib/constants/nationalities";
 import type { Team } from "@/types";
 
 // ─── RHF field helpers ──────────────────────────────────────────────────────
@@ -162,6 +163,7 @@ export function TeamForm({ seasonId, team, onSuccess, onCancel }: TeamFormProps)
     }));
 
     // RHF controllers for Select and Toggle
+    const nationalityField = useController({ name: "nationality", control: form.control });
     const engineSupplierField = useController({ name: "engine_supplier_id", control: form.control });
     const isFactoryField = useController({ name: "is_factory_team", control: form.control });
     const engineerLevelField = useController({ name: "engineer_level", control: form.control });
@@ -177,7 +179,15 @@ export function TeamForm({ seasonId, team, onSuccess, onCancel }: TeamFormProps)
                         <RHFInput name="name" control={form.control} label="Nom" placeholder="Red Bull Racing" isRequired />
                         <RHFInput name="short_name" control={form.control} label="Abreviation" placeholder="RBR" />
                     </div>
-                    <RHFInput name="nationality" control={form.control} label="Nationalite" placeholder="Autriche" />
+                    <Select.ComboBox
+                        label="Nationalite"
+                        placeholder="Rechercher..."
+                        items={nationalityItems}
+                        selectedKey={nationalityField.field.value || null}
+                        onSelectionChange={(key) => nationalityField.field.onChange(key as string ?? "")}
+                    >
+                        {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
+                    </Select.ComboBox>
                     <div className="grid grid-cols-2 gap-4">
                         <RHFInput name="color_primary" control={form.control} label="Couleur primaire" placeholder="#1E41FF" />
                         <RHFInput name="color_secondary" control={form.control} label="Couleur secondaire" placeholder="#FFB800" />

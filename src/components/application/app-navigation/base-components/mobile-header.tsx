@@ -1,6 +1,7 @@
 "use client";
 
-import type { PropsWithChildren } from "react";
+import { type PropsWithChildren, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { X as CloseIcon, Menu02 } from "@untitledui/icons";
 import {
     Button as AriaButton,
@@ -13,8 +14,16 @@ import { UntitledLogo } from "@/components/foundations/logo/untitledui-logo";
 import { cx } from "@/utils/cx";
 
 export const MobileNavigationHeader = ({ children }: PropsWithChildren) => {
+    const pathname = usePathname();
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Close the mobile menu when the route changes
+    useEffect(() => {
+        setIsOpen(false);
+    }, [pathname]);
+
     return (
-        <AriaDialogTrigger>
+        <AriaDialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
             <header className="flex h-16 items-center justify-between border-b border-secondary bg-primary py-3 pr-2 pl-4 lg:hidden">
                 <UntitledLogo />
 

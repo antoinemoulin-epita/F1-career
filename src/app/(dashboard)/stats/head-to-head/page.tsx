@@ -4,13 +4,14 @@ import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
     AlertCircle,
-    ArrowLeft,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { Select } from "@/components/base/select/select";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     useCompletedSeasons,
     useTeamsBySeason,
@@ -70,7 +71,7 @@ function BattleBar({
 
 export default function HeadToHeadPage() {
     return (
-        <Suspense fallback={<div className="flex min-h-80 items-center justify-center"><LoadingIndicator size="md" label="Chargement..." /></div>}>
+        <Suspense fallback={<PageLoading label="Chargement..." />}>
             <HeadToHeadContent />
         </Suspense>
     );
@@ -125,44 +126,26 @@ function HeadToHeadContent() {
 
     if (!universeId) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Univers manquant</EmptyState.Title>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/stats" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Univers manquant"
+                backHref="/stats"
+                backLabel="Retour"
+            />
         );
     }
 
     if (seasonsLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des saisons..." />
-            </div>
-        );
+        return <PageLoading label="Chargement des saisons..." />;
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/stats?u=${universeId}`}
-                >
-                    Statistiques
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Statistiques", href: "/stats" },
+                    { label: "Duel Coequipiers" },
+                ]} />
             </div>
 
             {/* Header */}

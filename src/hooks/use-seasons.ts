@@ -89,10 +89,11 @@ export function useCreateSeason() {
             if (error) throw error;
 
             // Set as current season on the universe
-            await supabase
+            const { error: updateError } = await supabase
                 .from("universes")
                 .update({ current_season_id: data.id })
                 .eq("id", form.universe_id);
+            if (updateError) throw updateError;
 
             return data;
         },

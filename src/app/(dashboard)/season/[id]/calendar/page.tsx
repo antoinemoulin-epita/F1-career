@@ -8,8 +8,6 @@ import {
     useDragAndDrop,
 } from "react-aria-components";
 import {
-    AlertCircle,
-    ArrowLeft,
     CloudRaining01,
     DotsGrid,
     Flag01,
@@ -18,8 +16,9 @@ import {
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     Dialog,
     DialogTrigger,
@@ -312,44 +311,19 @@ export default function CalendarPage() {
     // ─── Loading ────────────────────────────────────────────────────────────
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement du calendrier..." />
-            </div>
-        );
+        return <PageLoading label="Chargement du calendrier..." />;
     }
 
     // ─── Error ──────────────────────────────────────────────────────────────
 
     if (error) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger le calendrier de cette saison.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button
-                            href={`/season/${seasonId}`}
-                            size="md"
-                            color="secondary"
-                            iconLeading={ArrowLeft}
-                        >
-                            Retour a la saison
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger le calendrier de cette saison."
+                backHref={`/season/${seasonId}`}
+                backLabel="Retour a la saison"
+            />
         );
     }
 
@@ -357,16 +331,12 @@ export default function CalendarPage() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/season/${seasonId}`}
-                >
-                    Retour a la saison
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Saison", href: `/season/${seasonId}` },
+                    { label: "Calendrier" },
+                ]} />
             </div>
 
             {/* Header */}

@@ -9,13 +9,19 @@ import { MobileNavigationHeader } from "../base-components/mobile-header";
 import { NavAccountCard } from "../base-components/nav-account-card";
 import { NavItemBase } from "../base-components/nav-item";
 import { NavList } from "../base-components/nav-list";
-import type { NavItemType } from "../config";
+import type { NavItemDividerType, NavItemType } from "../config";
+
+function isActiveMatch(itemHref: string | undefined, activeUrl: string | undefined): boolean {
+    if (!itemHref || !activeUrl) return false;
+    if (activeUrl === itemHref) return true;
+    return activeUrl.startsWith(itemHref + "/");
+}
 
 interface SidebarNavigationProps {
     /** URL of the currently active item. */
     activeUrl?: string;
     /** List of items to display. */
-    items: NavItemType[];
+    items: (NavItemType | NavItemDividerType)[];
     /** List of footer items to display. */
     footerItems?: NavItemType[];
     /** Feature card to display. */
@@ -64,7 +70,7 @@ export const SidebarNavigationSimple = ({
                     <ul className="flex flex-col">
                         {footerItems.map((item) => (
                             <li key={item.label} className="py-0.5">
-                                <NavItemBase badge={item.badge} icon={item.icon} href={item.href} type="link" current={item.href === activeUrl}>
+                                <NavItemBase badge={item.badge} icon={item.icon} href={item.href} type="link" current={isActiveMatch(item.href, activeUrl)}>
                                     {item.label}
                                 </NavItemBase>
                             </li>

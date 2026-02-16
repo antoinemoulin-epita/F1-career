@@ -4,8 +4,10 @@ import { useForm, useController, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
+import { Select } from "@/components/base/select/select";
 import { useCreateRookie, useUpdateRookie } from "@/hooks/use-rookie-pool";
 import { rookiePoolSchema, rookiePoolFormDefaults, type RookiePoolFormValues } from "@/lib/validators";
+import { nationalityItems } from "@/lib/constants/nationalities";
 import type { RookiePool } from "@/types";
 
 // ─── RHF field helpers ──────────────────────────────────────────────────────
@@ -121,6 +123,7 @@ export function RookiePoolForm({ universeId, rookie, onSuccess, onCancel }: Rook
         }
     });
 
+    const nationalityField = useController({ name: "nationality", control: form.control });
     const potentialMin = form.watch("potential_min");
     const potentialMax = form.watch("potential_max");
 
@@ -133,7 +136,15 @@ export function RookiePoolForm({ universeId, rookie, onSuccess, onCancel }: Rook
                         <RHFInput name="first_name" control={form.control} label="Prenom" placeholder="Jean" />
                         <RHFInput name="last_name" control={form.control} label="Nom" placeholder="Dupont" isRequired />
                     </div>
-                    <RHFInput name="nationality" control={form.control} label="Nationalite" placeholder="FRA" />
+                    <Select.ComboBox
+                        label="Nationalite"
+                        placeholder="Rechercher..."
+                        items={nationalityItems}
+                        selectedKey={nationalityField.field.value || null}
+                        onSelectionChange={(key) => nationalityField.field.onChange(key as string ?? "")}
+                    >
+                        {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
+                    </Select.ComboBox>
                     <RHFNumberInput name="birth_year" control={form.control} label="Annee de naissance" placeholder="2005" />
                 </Section>
 

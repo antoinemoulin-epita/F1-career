@@ -81,9 +81,23 @@ export function useRemoveRace() {
                 .eq("id", id);
             if (error) throw error;
 
-            // Renumber remaining entries
+            // Renumber remaining entries using two-phase approach
+            // to avoid UNIQUE(season_id, round_number) constraint violations
             if (remainingIds.length > 0) {
-                await Promise.all(
+                // Phase 1: offset to temporary high values
+                const phase1 = await Promise.all(
+                    remainingIds.map((entryId, index) =>
+                        supabase
+                            .from("calendar")
+                            .update({ round_number: index + 1 + 10000 })
+                            .eq("id", entryId),
+                    ),
+                );
+                const phase1Error = phase1.find((r) => r.error)?.error;
+                if (phase1Error) throw phase1Error;
+
+                // Phase 2: set correct values
+                const phase2 = await Promise.all(
                     remainingIds.map((entryId, index) =>
                         supabase
                             .from("calendar")
@@ -91,6 +105,8 @@ export function useRemoveRace() {
                             .eq("id", entryId),
                     ),
                 );
+                const phase2Error = phase2.find((r) => r.error)?.error;
+                if (phase2Error) throw phase2Error;
             }
         },
         onSuccess: (_data, variables) => {
@@ -110,7 +126,23 @@ export function useReorderRaces() {
             seasonId: string;
             orderedIds: string[];
         }) => {
-            await Promise.all(
+            // Two-phase approach to avoid UNIQUE(season_id, round_number)
+            // constraint violations when swapping positions.
+
+            // Phase 1: offset all round_numbers to temporary high values
+            const phase1 = await Promise.all(
+                orderedIds.map((id, index) =>
+                    supabase
+                        .from("calendar")
+                        .update({ round_number: index + 1 + 10000 })
+                        .eq("id", id),
+                ),
+            );
+            const phase1Error = phase1.find((r) => r.error)?.error;
+            if (phase1Error) throw phase1Error;
+
+            // Phase 2: set the correct values
+            const phase2 = await Promise.all(
                 orderedIds.map((id, index) =>
                     supabase
                         .from("calendar")
@@ -118,6 +150,8 @@ export function useReorderRaces() {
                         .eq("id", id),
                 ),
             );
+            const phase2Error = phase2.find((r) => r.error)?.error;
+            if (phase2Error) throw phase2Error;
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: calendarKeys.bySeason(variables.seasonId) });

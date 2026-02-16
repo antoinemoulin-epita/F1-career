@@ -1,20 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
-    ArrowLeft,
     Edit01,
     Plus,
     Trash01,
+    Upload01,
     Users01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     Dialog,
     DialogTrigger,
@@ -24,8 +25,12 @@ import {
 import { Table, TableCard } from "@/components/application/table/table";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { TeamForm } from "@/components/forms/team-form";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
+import { useImportTeams } from "@/hooks/use-import-teams";
 import { useTeams, useDeleteTeam } from "@/hooks/use-teams";
+import { teamImportSchema, type TeamImportValues } from "@/lib/validators/team-import";
+import type { TeamFormValues } from "@/lib/validators";
 import type { Team, TeamWithBudget } from "@/types";
 
 // ─── CreateTeamDialog ───────────────────────────────────────────────────────
@@ -191,6 +196,18 @@ function DeleteTeamDialog({
     );
 }
 
+// ─── Budget helpers ─────────────────────────────────────────────────────────
+
+/** Base ~90 M€ + 12.5 M€ par point de budget (cap F1 ≈ 140 M€ pour 4 pts) */
+const BUDGET_BASE = 90;
+const BUDGET_PER_POINT = 12.5;
+
+function formatBudgetEuros(budgetTotal: number | null): string {
+    if (budgetTotal == null) return "—";
+    const millions = BUDGET_BASE + budgetTotal * BUDGET_PER_POINT;
+    return `${millions.toFixed(1)} M€`;
+}
+
 // ─── TeamRow ────────────────────────────────────────────────────────────────
 
 function TeamRow({
@@ -238,7 +255,7 @@ function TeamRow({
             </Table.Cell>
             <Table.Cell>
                 <span className="text-sm text-tertiary">
-                    {team.budget_total ?? "—"}
+                    {formatBudgetEuros(team.budget_total)}
                 </span>
             </Table.Cell>
             <Table.Cell>
@@ -268,6 +285,58 @@ function TeamRow({
     );
 }
 
+// ─── Import config ─────────────────────────────────────────────────────────
+
+const teamExampleJson = JSON.stringify(
+    [
+        {
+            name: "Red Bull Racing",
+            short_name: "RBR",
+            nationality: "AUT",
+            color_primary: "#1E41FF",
+            team_principal: "Christian Horner",
+            technical_director: "Adrian Newey",
+            engineer_level: 3,
+            engine_supplier: "Honda",
+            is_factory_team: false,
+            shareholders: "Red Bull GmbH",
+            owner_investment: 2,
+            sponsor_investment: 2,
+            surperformance_bonus: 1,
+            title_sponsor: "Oracle",
+            sponsor_duration: 3,
+            sponsor_objective: "Top 3",
+        },
+    ],
+    null,
+    2,
+);
+
+function buildTeamFields(supplierNames: string[]) {
+    const supplierDesc = supplierNames.length > 0
+        ? `Nom du motoriste : ${supplierNames.join(", ")}`
+        : "Nom du motoriste (aucun motoriste existant)";
+    return [
+        { name: "name", required: true, description: "Nom de l'equipe" },
+        { name: "short_name", required: false, description: "Abreviation (5 car. max)" },
+        { name: "nationality", required: false, description: "Code pays (GBR, FRA, ITA, NED...)" },
+        { name: "color_primary", required: false, description: "Couleur principale (hex)" },
+        { name: "color_secondary", required: false, description: "Couleur secondaire (hex)" },
+        { name: "team_principal", required: false, description: "Directeur d'equipe" },
+        { name: "technical_director", required: false, description: "Directeur technique" },
+        { name: "engineer_level", required: false, description: "Niveau ingenieurs (1–3)" },
+        { name: "engine_supplier", required: false, description: supplierDesc },
+        { name: "is_factory_team", required: false, description: "Equipe usine (true/false)" },
+        { name: "shareholders", required: false, description: "Actionnaires" },
+        { name: "owner_investment", required: false, description: "Investissement proprietaire (0–2)" },
+        { name: "sponsor_investment", required: false, description: "Investissement sponsor (0–2)" },
+        { name: "surperformance_bonus", required: false, description: "Bonus surperformance (0+)" },
+        { name: "title_sponsor", required: false, description: "Nom du sponsor titre" },
+        { name: "sponsor_duration", required: false, description: "Duree du contrat sponsor (annees)" },
+        { name: "sponsor_objective", required: false, description: "Objectif du sponsor" },
+    ];
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function TeamsPage() {
@@ -276,6 +345,7 @@ export default function TeamsPage() {
 
     const { data: teams, isLoading, error } = useTeams(seasonId);
     const { data: suppliers } = useEngineSuppliers(seasonId);
+    const importTeams = useImportTeams();
 
     const [editingTeam, setEditingTeam] = useState<TeamWithBudget | null>(null);
     const [deletingTeam, setDeletingTeam] = useState<TeamWithBudget | null>(null);
@@ -285,48 +355,61 @@ export default function TeamsPage() {
         [suppliers],
     );
 
+    const teamFields = useMemo(
+        () => buildTeamFields((suppliers ?? []).map((s) => s.name)),
+        [suppliers],
+    );
+
+    const resolveTeams = useCallback(
+        (items: TeamImportValues[]) => {
+            const nameToId = new Map(
+                (suppliers ?? []).map((s) => [s.name.toLowerCase(), s.id]),
+            );
+            const resolved: TeamFormValues[] = [];
+            const errors: string[] = [];
+
+            items.forEach((item, i) => {
+                const { engine_supplier, ...rest } = item;
+                if (engine_supplier) {
+                    const id = nameToId.get(engine_supplier.trim().toLowerCase());
+                    if (!id) {
+                        errors.push(`Element ${i + 1} : motoriste "${engine_supplier}" introuvable`);
+                        return;
+                    }
+                    resolved.push({ ...rest, engine_supplier_id: id });
+                } else {
+                    resolved.push({ ...rest, engine_supplier_id: null });
+                }
+            });
+
+            return { resolved, errors };
+        },
+        [suppliers],
+    );
+
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des equipes..." />
-            </div>
-        );
+        return <PageLoading label="Chargement des equipes..." />;
     }
 
     if (error) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger les equipes de cette saison.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href={`/season/${seasonId}`} size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour a la saison
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les equipes de cette saison."
+                backHref={`/season/${seasonId}`}
+                backLabel="Retour a la saison"
+            />
         );
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button color="link-gray" size="sm" iconLeading={ArrowLeft} href={`/season/${seasonId}`}>
-                    Retour a la saison
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Saison", href: `/season/${seasonId}` },
+                    { label: "Equipes" },
+                ]} />
             </div>
 
             {/* Header */}
@@ -337,7 +420,24 @@ export default function TeamsPage() {
                         {teams?.length ?? 0} equipe{(teams?.length ?? 0) !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <CreateTeamDialog seasonId={seasonId} />
+                <div className="flex items-center gap-3">
+                    <ImportJsonDialog<TeamImportValues, TeamFormValues>
+                        title="Importer des equipes"
+                        description="Importez des equipes depuis un fichier JSON."
+                        exampleData={teamExampleJson}
+                        fields={teamFields}
+                        schema={teamImportSchema}
+                        resolve={resolveTeams}
+                        onImport={(items) => importTeams.mutate({ seasonId, rows: items })}
+                        isPending={importTeams.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                    <CreateTeamDialog seasonId={seasonId} />
+                </div>
             </div>
 
             {/* Content */}

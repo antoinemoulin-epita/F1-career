@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, CheckCircle, Copy01, Download01 } from "@untitledui/icons";
+import { CheckCircle, Copy01, Download01 } from "@untitledui/icons";
 import { Button } from "@/components/base/buttons/button";
 import { Checkbox } from "@/components/base/checkbox/checkbox";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { usePreRaceExport } from "@/hooks/use-pre-race-export";
 import { generatePreRaceMarkdown, type ExportSections } from "@/lib/export/pre-race-template";
@@ -67,47 +67,16 @@ export default function ExportPage() {
         URL.revokeObjectURL(url);
     };
 
-    // ─── Loading ─────────────────────────────────────────────────────────────
-
-    if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des donnees..." />
-            </div>
-        );
-    }
-
-    // ─── Error ───────────────────────────────────────────────────────────────
+    if (isLoading) return <PageLoading label="Chargement des donnees..." />;
 
     if (error || !data) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger les donnees pour l&apos;export.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button
-                            href={`/season/${seasonId}/calendar`}
-                            size="md"
-                            color="secondary"
-                            iconLeading={ArrowLeft}
-                        >
-                            Retour au calendrier
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les donnees pour l'export."
+                backHref={`/season/${seasonId}/calendar`}
+                backLabel="Retour au calendrier"
+            />
         );
     }
 
@@ -115,16 +84,15 @@ export default function ExportPage() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/season/${seasonId}/race/${raceId}/qualifying`}
-                >
-                    Retour a la course
-                </Button>
+                <Breadcrumbs
+                    items={[
+                        { label: "Saison", href: `/season/${seasonId}` },
+                        { label: `GP ${data.round_number}`, href: `/season/${seasonId}/race/${raceId}/qualifying` },
+                        { label: "Export pre-course" },
+                    ]}
+                />
             </div>
 
             {/* Header */}

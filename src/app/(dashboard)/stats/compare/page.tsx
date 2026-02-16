@@ -3,15 +3,13 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-    AlertCircle,
-    ArrowLeft,
     Plus,
     XClose,
 } from "@untitledui/icons";
 import { Button } from "@/components/base/buttons/button";
 import { Select } from "@/components/base/select/select";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { StatsLineChart, CHART_COLORS } from "@/components/charts/line-chart";
 import { useAllTimeStats, type AllTimeDriverStat } from "@/hooks/use-history";
 
@@ -21,7 +19,7 @@ const MAX_DRIVERS = 4;
 
 export default function ComparePage() {
     return (
-        <Suspense fallback={<div className="flex min-h-80 items-center justify-center"><LoadingIndicator size="md" label="Chargement..." /></div>}>
+        <Suspense fallback={<PageLoading label="Chargement..." />}>
             <CompareContent />
         </Suspense>
     );
@@ -31,7 +29,7 @@ function CompareContent() {
     const searchParams = useSearchParams();
     const universeId = searchParams.get("u") ?? "";
 
-    const { data: stats, isLoading } = useAllTimeStats(universeId);
+    const { data: stats, isLoading, error } = useAllTimeStats(universeId);
 
     const [selectedNames, setSelectedNames] = useState<string[]>([]);
 
@@ -125,29 +123,26 @@ function CompareContent() {
 
     if (!universeId) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Univers manquant</EmptyState.Title>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/stats" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Univers manquant"
+                backHref="/stats"
+                backLabel="Retour"
+            />
         );
     }
 
     if (isLoading) {
+        return <PageLoading label="Chargement des statistiques..." />;
+    }
+
+    if (error) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des statistiques..." />
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les statistiques."
+                backHref="/stats"
+                backLabel="Retour"
+            />
         );
     }
 
@@ -173,16 +168,12 @@ function CompareContent() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/stats?u=${universeId}`}
-                >
-                    Statistiques
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Statistiques", href: "/stats" },
+                    { label: "Comparaison" },
+                ]} />
             </div>
 
             {/* Header */}

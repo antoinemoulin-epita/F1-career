@@ -10,6 +10,7 @@ import { useCreateNews, useUpdateNews } from "@/hooks/use-news";
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
 import { newsSchema, newsFormDefaults, type NewsFormValues } from "@/lib/validators";
 import { newsTypeLabels } from "@/lib/constants/arc-labels";
+import { importanceItems } from "@/lib/constants/nationalities";
 import type { News } from "@/types";
 
 // ─── RHF field helpers ──────────────────────────────────────────────────────
@@ -134,6 +135,7 @@ export function NewsForm({ seasonId, universeId, news, onSuccess, onCancel }: Ne
     ];
 
     // RHF controllers for Selects / TextArea
+    const importanceField = useController({ name: "importance", control: form.control });
     const newsTypeField = useController({ name: "news_type", control: form.control });
     const arcIdField = useController({ name: "arc_id", control: form.control });
     const contentField = useController({ name: "content", control: form.control });
@@ -170,12 +172,15 @@ export function NewsForm({ seasonId, universeId, news, onSuccess, onCancel }: Ne
                     >
                         {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
                     </Select>
-                    <RHFNumberInput
-                        name="importance"
-                        control={form.control}
-                        label="Importance (1-5)"
-                        placeholder="2"
-                    />
+                    <Select
+                        label="Importance"
+                        placeholder="Selectionner"
+                        items={importanceItems}
+                        selectedKey={importanceField.field.value != null ? String(importanceField.field.value) : null}
+                        onSelectionChange={(key) => importanceField.field.onChange(key ? Number(key) : null)}
+                    >
+                        {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
+                    </Select>
                 </Section>
 
                 {/* Contexte */}

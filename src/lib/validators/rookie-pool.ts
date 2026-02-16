@@ -1,13 +1,14 @@
 import { z } from "zod";
+import { validNationalityCodes } from "@/lib/constants/nationalities";
 
 export const rookiePoolSchema = z
     .object({
         first_name: z.string().optional().or(z.literal("")),
         last_name: z.string().min(2, "Le nom doit faire au moins 2 caracteres"),
-        nationality: z.string().optional().or(z.literal("")),
+        nationality: z.enum(validNationalityCodes as [string, ...string[]]).or(z.literal("")).optional(),
         birth_year: z.number().int().min(1980).max(2015).nullable().optional(),
-        potential_min: z.number().min(0).max(10),
-        potential_max: z.number().min(0).max(10),
+        potential_min: z.number().int().min(0).max(10),
+        potential_max: z.number().int().min(0).max(10),
         available_from_year: z.number().int().min(2000).max(2100).nullable().optional(),
     })
     .refine((d) => d.potential_min <= d.potential_max, {

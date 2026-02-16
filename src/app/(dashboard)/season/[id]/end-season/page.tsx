@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
@@ -20,11 +20,12 @@ import {
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { Checkbox } from "@/components/base/checkbox/checkbox";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { useSeason } from "@/hooks/use-seasons";
+import { useCalendar } from "@/hooks/use-calendar";
 import { useDrivers } from "@/hooks/use-drivers";
 import { useTeams } from "@/hooks/use-teams";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/use-standings";
@@ -102,6 +103,7 @@ export default function EndSeasonPage() {
 
     // ─── Data fetching ──────────────────────────────────────────────────
     const { data: season, isLoading: seasonLoading } = useSeason(seasonId);
+    const { data: calendar, isLoading: calendarLoading } = useCalendar(seasonId);
     const { data: driversRaw, isLoading: driversLoading } = useDrivers(seasonId);
     const { data: teamsRaw, isLoading: teamsLoading } = useTeams(seasonId);
     const { data: driverStandingsRaw, isLoading: dsLoading } = useDriverStandings(seasonId);
@@ -111,7 +113,7 @@ export default function EndSeasonPage() {
     const archiveSeason = useArchiveSeason();
     const { copied, copy } = useClipboard();
 
-    const isLoading = seasonLoading || driversLoading || teamsLoading || dsLoading || csLoading || surperfLoading;
+    const isLoading = seasonLoading || calendarLoading || driversLoading || teamsLoading || dsLoading || csLoading || surperfLoading;
 
     // ─── Current step ───────────────────────────────────────────────────
     const [currentStepId, setCurrentStepId] = useState<StepId>("champions");
@@ -177,35 +179,43 @@ export default function EndSeasonPage() {
         [drivers],
     );
 
-    // ─── Initialize toggles on first render ─────────────────────────────
-    useMemo(() => {
+    // ─── Initialize toggles when data arrives ──────────────────────────
+    useEffect(() => {
         if (decliningDrivers.length > 0 && declineEnabled.size === 0) {
             const map = new Map<string, boolean>();
             decliningDrivers.forEach((d) => { if (d.id) map.set(d.id, true); });
             setDeclineEnabled(map);
         }
+    }, [decliningDrivers, declineEnabled.size]);
+
+    useEffect(() => {
         if (progressingDrivers.length > 0 && progressionEnabled.size === 0) {
             const map = new Map<string, boolean>();
             progressingDrivers.forEach((d) => { if (d.id) map.set(d.id, true); });
             setProgressionEnabled(map);
         }
+    }, [progressingDrivers, progressionEnabled.size]);
+
+    useEffect(() => {
         if (rookies.length > 0 && rookieReveals.size === 0) {
             const map = new Map<string, number | null>();
             rookies.forEach((d) => {
                 if (d.id) {
-                    // Default: propose surperformance-based reveal
                     const surp = surperfData?.drivers.find((s) => s.driver_id === d.id);
                     if (surp && surp.effect === "positive" && d.potential_max != null) {
                         map.set(d.id, d.potential_max);
                     } else if (surp && surp.effect === "negative" && d.potential_min != null) {
                         map.set(d.id, d.potential_min);
                     } else {
-                        map.set(d.id, null); // needs manual selection
+                        map.set(d.id, null);
                     }
                 }
             });
             setRookieReveals(map);
         }
+    }, [rookies, surperfData, rookieReveals.size]);
+
+    useEffect(() => {
         if (surperfData && budgetOverrides.size === 0) {
             const map = new Map<string, boolean>();
             surperfData.teams.forEach((t) => {
@@ -213,7 +223,7 @@ export default function EndSeasonPage() {
             });
             setBudgetOverrides(map);
         }
-    }, [decliningDrivers, progressingDrivers, rookies, surperfData, declineEnabled.size, progressionEnabled.size, rookieReveals.size, budgetOverrides.size]);
+    }, [surperfData, budgetOverrides.size]);
 
     // ─── Build final evolutions for validation ──────────────────────────
     const driverEvolutions = useMemo<DriverEvolution[]>(() => {
@@ -415,46 +425,71 @@ export default function EndSeasonPage() {
         setExportSections((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    // ─── Loading ────────────────────────────────────────────────────────
-    if (isLoading) {
+    if (isLoading) return <PageLoading label="Chargement des donnees..." />;
+
+    // ─── End-season guard: check all races completed ─────────────────
+
+    const totalRaces = calendar?.length ?? 0;
+    const completedRaces = calendar?.filter((r) => r.status === "completed").length ?? 0;
+    const allRacesCompleted = totalRaces > 0 && completedRaces === totalRaces;
+
+    if (!allRacesCompleted) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des donnees..." />
+            <div>
+                <div className="mb-6">
+                    <Breadcrumbs
+                        items={[
+                            { label: "Saison", href: `/season/${seasonId}` },
+                            { label: "Fin de saison" },
+                        ]}
+                    />
+                </div>
+                <div className="flex min-h-60 flex-col items-center justify-center gap-4">
+                    <FeaturedIcon icon={AlertCircle} color="warning" theme="light" size="lg" />
+                    <div className="text-center">
+                        <h2 className="text-lg font-semibold text-primary">
+                            Saison incomplete
+                        </h2>
+                        <p className="mt-1 text-sm text-tertiary">
+                            {totalRaces === 0
+                                ? "Aucune course n'a ete ajoutee au calendrier."
+                                : `Courses terminees : ${completedRaces}/${totalRaces}. Terminez toutes les courses avant de cloturer la saison.`}
+                        </p>
+                    </div>
+                    <Button
+                        href={`/season/${seasonId}/calendar`}
+                        size="md"
+                        color="primary"
+                    >
+                        Voir le calendrier
+                    </Button>
+                </div>
             </div>
         );
     }
 
     if (!season || !driverStandingsRaw || !constructorStandingsRaw) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger les donnees de la saison.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href={`/season/${seasonId}`} size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur"
+                description="Impossible de charger les donnees de la saison."
+                backHref={`/season/${seasonId}`}
+                backLabel="Retour"
+            />
         );
     }
 
     // ─── Render ─────────────────────────────────────────────────────────
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button color="link-gray" size="sm" iconLeading={ArrowLeft} href={`/season/${seasonId}`}>
-                    Retour a la saison
-                </Button>
+                <Breadcrumbs
+                    items={[
+                        { label: "Saison", href: `/season/${seasonId}` },
+                        { label: "Fin de saison" },
+                    ]}
+                />
             </div>
 
             {/* Header */}

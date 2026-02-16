@@ -1,20 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
-    ArrowLeft,
     Edit01,
     Plus,
     Trash01,
+    Upload01,
     User01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     Dialog,
     DialogTrigger,
@@ -24,8 +25,12 @@ import {
 import { Table, TableCard } from "@/components/application/table/table";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { DriverForm } from "@/components/forms/driver-form";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { useDrivers, useDeleteDriver } from "@/hooks/use-drivers";
+import { useImportDrivers } from "@/hooks/use-import-drivers";
 import { useTeams } from "@/hooks/use-teams";
+import { driverImportSchema, type DriverImportValues } from "@/lib/validators/driver-import";
+import type { DriverFormValues } from "@/lib/validators";
 import type { Driver, DriverWithEffective, TeamWithBudget } from "@/types";
 
 // ─── CreateDriverDialog ─────────────────────────────────────────────────────
@@ -308,6 +313,49 @@ function DriverRow({
     );
 }
 
+// ─── Import config ─────────────────────────────────────────────────────────
+
+const driverExampleJson = JSON.stringify(
+    [
+        {
+            last_name: "Verstappen",
+            first_name: "Max",
+            nationality: "NED",
+            birth_year: 1997,
+            note: 9,
+            potential_min: 9,
+            potential_max: 10,
+            team: "Red Bull Racing",
+            is_rookie: false,
+            world_titles: 4,
+            career_wins: 63,
+        },
+    ],
+    null,
+    2,
+);
+
+function buildDriverFields(teamNames: string[]) {
+    const teamDesc = teamNames.length > 0
+        ? `Nom de l'equipe : ${teamNames.join(", ")}`
+        : "Nom de l'equipe (aucune equipe existante)";
+    return [
+        { name: "last_name", required: true, description: "Nom de famille" },
+        { name: "first_name", required: false, description: "Prenom" },
+        { name: "nationality", required: false, description: "Code pays (GBR, FRA, ITA, NED...)" },
+        { name: "birth_year", required: false, description: "Annee de naissance (1950–2015)" },
+        { name: "note", required: true, description: "Note globale, entier (0–10)" },
+        { name: "potential_min", required: false, description: "Potentiel minimum, entier (0–10)" },
+        { name: "potential_max", required: false, description: "Potentiel maximum, entier (0–10)" },
+        { name: "team", required: false, description: teamDesc },
+        { name: "is_rookie", required: false, description: "true/false" },
+        { name: "is_retiring", required: false, description: "true/false" },
+        { name: "world_titles", required: false, description: "Nombre de titres mondiaux" },
+        { name: "career_wins", required: false, description: "Nombre de victoires en carriere" },
+        { name: "career_points", required: false, description: "Points en carriere" },
+    ];
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function DriversPage() {
@@ -316,6 +364,7 @@ export default function DriversPage() {
 
     const { data: drivers, isLoading, error } = useDrivers(seasonId);
     const { data: teams } = useTeams(seasonId);
+    const importDrivers = useImportDrivers();
 
     const [editingDriver, setEditingDriver] = useState<DriverWithEffective | null>(null);
     const [deletingDriver, setDeletingDriver] = useState<DriverWithEffective | null>(null);
@@ -325,48 +374,61 @@ export default function DriversPage() {
         [teams],
     );
 
+    const driverFields = useMemo(
+        () => buildDriverFields((teams ?? []).map((t) => t.name!)),
+        [teams],
+    );
+
+    const resolveDrivers = useCallback(
+        (items: DriverImportValues[]) => {
+            const nameToId = new Map(
+                (teams ?? []).map((t) => [t.name!.toLowerCase(), t.id!]),
+            );
+            const resolved: DriverFormValues[] = [];
+            const errors: string[] = [];
+
+            items.forEach((item, i) => {
+                const { team, ...rest } = item;
+                if (team) {
+                    const id = nameToId.get(team.trim().toLowerCase());
+                    if (!id) {
+                        errors.push(`Element ${i + 1} : equipe "${team}" introuvable`);
+                        return;
+                    }
+                    resolved.push({ ...rest, team_id: id });
+                } else {
+                    resolved.push({ ...rest, team_id: null });
+                }
+            });
+
+            return { resolved, errors };
+        },
+        [teams],
+    );
+
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des pilotes..." />
-            </div>
-        );
+        return <PageLoading label="Chargement des pilotes..." />;
     }
 
     if (error) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger les pilotes de cette saison.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href={`/season/${seasonId}`} size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour a la saison
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les pilotes de cette saison."
+                backHref={`/season/${seasonId}`}
+                backLabel="Retour a la saison"
+            />
         );
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button color="link-gray" size="sm" iconLeading={ArrowLeft} href={`/season/${seasonId}`}>
-                    Retour a la saison
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Saison", href: `/season/${seasonId}` },
+                    { label: "Pilotes" },
+                ]} />
             </div>
 
             {/* Header */}
@@ -377,7 +439,24 @@ export default function DriversPage() {
                         {drivers?.length ?? 0} pilote{(drivers?.length ?? 0) !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <CreateDriverDialog seasonId={seasonId} teams={teams ?? []} />
+                <div className="flex items-center gap-3">
+                    <ImportJsonDialog<DriverImportValues, DriverFormValues>
+                        title="Importer des pilotes"
+                        description="Importez des pilotes depuis un fichier JSON."
+                        exampleData={driverExampleJson}
+                        fields={driverFields}
+                        schema={driverImportSchema}
+                        resolve={resolveDrivers}
+                        onImport={(items) => importDrivers.mutate({ seasonId, rows: items })}
+                        isPending={importDrivers.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                    <CreateDriverDialog seasonId={seasonId} teams={teams ?? []} />
+                </div>
             </div>
 
             {/* Content */}

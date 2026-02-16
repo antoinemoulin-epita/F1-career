@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
     AlertCircle,
-    ArrowLeft,
     Calendar,
     ChevronRight,
     Edit05,
@@ -20,7 +19,8 @@ import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { TextArea } from "@/components/base/textarea/textarea";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     Dialog,
     DialogTrigger,
@@ -475,49 +475,29 @@ export default function UniverseDetailPage() {
             ? Math.max(...seasons.map((s) => s.year)) + 1
             : (universe?.start_year ?? 2024);
 
-    if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Loading universe..." />
-            </div>
-        );
-    }
+    if (isLoading) return <PageLoading label="Chargement de l'univers..." />;
 
     if (universeError || !universe) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Universe not found</EmptyState.Title>
-                        <EmptyState.Description>
-                            This universe doesn&apos;t exist or you don&apos;t have access
-                            to it.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Back to universes
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Univers introuvable"
+                description="Cet univers n'existe pas ou vous n'y avez pas acces."
+                backHref="/"
+                backLabel="Retour aux univers"
+            />
         );
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button color="link-gray" size="sm" iconLeading={ArrowLeft} href="/">
-                    Back to universes
-                </Button>
+                <Breadcrumbs
+                    items={[
+                        { label: "Univers", href: "/universe" },
+                        { label: universe.name },
+                    ]}
+                />
             </div>
 
             {/* Header */}

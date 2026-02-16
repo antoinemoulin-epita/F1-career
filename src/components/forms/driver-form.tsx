@@ -8,6 +8,7 @@ import { Input } from "@/components/base/input/input";
 import { Select } from "@/components/base/select/select";
 import { useCreateDriver, useUpdateDriver } from "@/hooks/use-drivers";
 import { driverSchema, driverFormDefaults, type DriverFormValues } from "@/lib/validators";
+import { nationalityItems } from "@/lib/constants/nationalities";
 import type { Driver, TeamWithBudget } from "@/types";
 
 // ─── RHF field helpers ──────────────────────────────────────────────────────
@@ -165,6 +166,7 @@ export function DriverForm({ seasonId, driver, teams, onSuccess, onCancel }: Dri
 
     // RHF controllers for Select and Checkbox
     const teamIdField = useController({ name: "team_id", control: form.control });
+    const nationalityField = useController({ name: "nationality", control: form.control });
     const isFirstDriverField = useController({ name: "is_first_driver", control: form.control });
     const potentialRevealedField = useController({ name: "potential_revealed", control: form.control });
     const isRookieField = useController({ name: "is_rookie", control: form.control });
@@ -179,7 +181,15 @@ export function DriverForm({ seasonId, driver, teams, onSuccess, onCancel }: Dri
                         <RHFInput name="first_name" control={form.control} label="Prenom" placeholder="Max" />
                         <RHFInput name="last_name" control={form.control} label="Nom" placeholder="Verstappen" isRequired />
                     </div>
-                    <RHFInput name="nationality" control={form.control} label="Nationalite" placeholder="Pays-Bas" />
+                    <Select.ComboBox
+                        label="Nationalite"
+                        placeholder="Rechercher..."
+                        items={nationalityItems}
+                        selectedKey={nationalityField.field.value || null}
+                        onSelectionChange={(key) => nationalityField.field.onChange(key as string ?? "")}
+                    >
+                        {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
+                    </Select.ComboBox>
                     <RHFNumberInput name="birth_year" control={form.control} label="Annee de naissance" placeholder="1997" />
                 </Section>
 

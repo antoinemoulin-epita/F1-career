@@ -3,8 +3,6 @@
 import { Suspense, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
-    AlertCircle,
-    ArrowLeft,
     ChevronDown,
     ChevronRight,
     Flag06,
@@ -13,8 +11,9 @@ import {
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { useArchivedSeason, useChampions } from "@/hooks/use-history";
@@ -187,7 +186,7 @@ function RaceDetail({ raceId }: { raceId: string }) {
 
 export default function SeasonDetailPage() {
     return (
-        <Suspense fallback={<div className="flex min-h-80 items-center justify-center"><LoadingIndicator size="md" label="Chargement..." /></div>}>
+        <Suspense fallback={<PageLoading label="Chargement..." />}>
             <SeasonDetailContent />
         </Suspense>
     );
@@ -233,67 +232,38 @@ function SeasonDetailContent() {
 
     if (!universeId || !year) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Parametres manquants</EmptyState.Title>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/history" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Parametres manquants"
+                backHref="/history"
+                backLabel="Retour"
+            />
         );
     }
 
     if (seasonLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement de la saison..." />
-            </div>
-        );
+        return <PageLoading label="Chargement de la saison..." />;
     }
 
     if (!season) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Saison introuvable</EmptyState.Title>
-                        <EmptyState.Description>
-                            Aucune saison archivee pour l&apos;annee {year}.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href={`/history/seasons?u=${universeId}`} size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Saison introuvable"
+                description={`Aucune saison archivee pour l'annee ${year}.`}
+                backHref={`/history/seasons?u=${universeId}`}
+                backLabel="Retour"
+            />
         );
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/history/seasons?u=${universeId}`}
-                >
-                    Saisons
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Palmares", href: "/history" },
+                    { label: "Saisons", href: `/history/seasons?u=${universeId}` },
+                    { label: String(year) },
+                ]} />
             </div>
 
             {/* Header */}

@@ -30,7 +30,34 @@ export async function updateSession(request: NextRequest) {
     );
 
     // Refresh the auth token
-    await supabase.auth.getUser();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    const pathname = request.nextUrl.pathname;
+    const isLoginPage = pathname === "/login";
+
+    // Redirect unauthenticated users to /login
+    if (!user && !isLoginPage) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        const redirectResponse = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+            redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+        });
+        return redirectResponse;
+    }
+
+    // Redirect authenticated users away from /login
+    if (user && isLoginPage) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/universe";
+        const redirectResponse = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+            redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+        });
+        return redirectResponse;
+    }
 
     return supabaseResponse;
 }

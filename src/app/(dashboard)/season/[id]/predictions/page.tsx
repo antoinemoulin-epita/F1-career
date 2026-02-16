@@ -3,8 +3,6 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
-    AlertCircle,
-    ArrowLeft,
     Lock01,
     RefreshCw01,
     Target04,
@@ -12,8 +10,9 @@ import {
 } from "@untitledui/icons";
 import { Badge, BadgeWithIcon } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     Dialog,
     DialogTrigger,
@@ -315,44 +314,19 @@ export default function PredictionsPage() {
     // ─── Loading ────────────────────────────────────────────────────────────
 
     if (seasonLoading || driversLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des predictions..." />
-            </div>
-        );
+        return <PageLoading label="Chargement des predictions..." />;
     }
 
     // ─── Error ──────────────────────────────────────────────────────────────
 
     if (seasonError || !season) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger les predictions.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button
-                            href={`/season/${seasonId}`}
-                            size="md"
-                            color="secondary"
-                            iconLeading={ArrowLeft}
-                        >
-                            Retour a la saison
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les predictions."
+                backHref={`/season/${seasonId}`}
+                backLabel="Retour a la saison"
+            />
         );
     }
 
@@ -360,16 +334,12 @@ export default function PredictionsPage() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/season/${seasonId}`}
-                >
-                    Retour a la saison
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Saison", href: `/season/${seasonId}` },
+                    { label: "Predictions" },
+                ]} />
             </div>
 
             {/* Header */}

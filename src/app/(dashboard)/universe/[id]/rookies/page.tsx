@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
-    ArrowLeft,
     Edit01,
     Plus,
     Trash01,
+    Upload01,
     User01,
     UserPlus01,
 } from "@untitledui/icons";
@@ -15,8 +15,9 @@ import { BadgeWithDot } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { Select } from "@/components/base/select/select";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     Dialog,
     DialogTrigger,
@@ -26,7 +27,9 @@ import {
 import { Table, TableCard } from "@/components/application/table/table";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { RookiePoolForm } from "@/components/forms/rookie-pool-form";
+import { useImportRookies } from "@/hooks/use-import-rookies";
 import {
     useRookiePool,
     useDeleteRookie,
@@ -34,6 +37,7 @@ import {
 } from "@/hooks/use-rookie-pool";
 import { useSeasons } from "@/hooks/use-seasons";
 import { useTeams } from "@/hooks/use-teams";
+import { rookiePoolSchema } from "@/lib/validators";
 import type { RookiePool } from "@/types";
 
 // ─── CreateRookieDialog ─────────────────────────────────────────────────────
@@ -485,6 +489,34 @@ function RookieTable({
     );
 }
 
+// ─── Import config ─────────────────────────────────────────────────────────
+
+const rookieExampleJson = JSON.stringify(
+    [
+        {
+            last_name: "Antonelli",
+            first_name: "Kimi",
+            nationality: "ITA",
+            birth_year: 2006,
+            potential_min: 6,
+            potential_max: 9,
+            available_from_year: 2025,
+        },
+    ],
+    null,
+    2,
+);
+
+const rookieFields = [
+    { name: "last_name", required: true, description: "Nom de famille" },
+    { name: "first_name", required: false, description: "Prenom" },
+    { name: "nationality", required: false, description: "Code pays (GBR, FRA, ITA, NED...)" },
+    { name: "birth_year", required: false, description: "Annee de naissance (1980–2015)" },
+    { name: "potential_min", required: true, description: "Potentiel minimum, entier (0–10)" },
+    { name: "potential_max", required: true, description: "Potentiel maximum, entier (0–10, >= min)" },
+    { name: "available_from_year", required: false, description: "Disponible a partir de (2000–2100)" },
+];
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function RookiesPoolPage() {
@@ -492,6 +524,7 @@ export default function RookiesPoolPage() {
     const universeId = params.id;
 
     const { data: rookies, isLoading, error } = useRookiePool(universeId);
+    const importRookies = useImportRookies();
 
     const [editingRookie, setEditingRookie] = useState<RookiePool | null>(null);
     const [deletingRookie, setDeletingRookie] = useState<RookiePool | null>(null);
@@ -507,47 +540,28 @@ export default function RookiesPoolPage() {
     );
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement du pool rookies..." />
-            </div>
-        );
+        return <PageLoading label="Chargement du pool rookies..." />;
     }
 
     if (error) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger le pool de rookies.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href={`/universe/${universeId}`} size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour a l&apos;univers
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger le pool de rookies."
+                backHref={`/universe/${universeId}`}
+                backLabel="Retour a l'univers"
+            />
         );
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button color="link-gray" size="sm" iconLeading={ArrowLeft} href={`/universe/${universeId}`}>
-                    Retour a l&apos;univers
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Univers", href: `/universe/${universeId}` },
+                    { label: "Pool Rookies" },
+                ]} />
             </div>
 
             {/* Header */}
@@ -558,7 +572,23 @@ export default function RookiesPoolPage() {
                         {rookies?.length ?? 0} rookie{(rookies?.length ?? 0) !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <CreateRookieDialog universeId={universeId} />
+                <div className="flex items-center gap-3">
+                    <ImportJsonDialog
+                        title="Importer des rookies"
+                        description="Importez des rookies depuis un fichier JSON."
+                        exampleData={rookieExampleJson}
+                        fields={rookieFields}
+                        schema={rookiePoolSchema}
+                        onImport={(items) => importRookies.mutate({ universeId, rows: items })}
+                        isPending={importRookies.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                    <CreateRookieDialog universeId={universeId} />
+                </div>
             </div>
 
             {/* Content with tabs */}

@@ -2,14 +2,10 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-    AlertCircle,
-    ArrowLeft,
-} from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Tabs } from "@/components/application/tabs/tabs";
 import {
     useAllTimeStats,
@@ -85,7 +81,7 @@ function RecordTable({
 
 export default function RecordsPage() {
     return (
-        <Suspense fallback={<div className="flex min-h-80 items-center justify-center"><LoadingIndicator size="md" label="Chargement..." /></div>}>
+        <Suspense fallback={<PageLoading label="Chargement..." />}>
             <RecordsPageContent />
         </Suspense>
     );
@@ -95,8 +91,8 @@ function RecordsPageContent() {
     const searchParams = useSearchParams();
     const universeId = searchParams.get("u") ?? "";
 
-    const { data: stats, isLoading: statsLoading } = useAllTimeStats(universeId);
-    const { data: raceData, isLoading: raceLoading } = useRaceWinDetails(universeId);
+    const { data: stats, isLoading: statsLoading, error: statsError } = useAllTimeStats(universeId);
+    const { data: raceData, isLoading: raceLoading, error: raceError } = useRaceWinDetails(universeId);
 
     const [activeTab, setActiveTab] = useState<TabId>("season");
 
@@ -216,47 +212,38 @@ function RecordsPageContent() {
 
     if (!universeId) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Univers manquant</EmptyState.Title>
-                        <EmptyState.Description>
-                            Aucun univers selectionne.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/history" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Univers manquant"
+                description="Aucun univers selectionne."
+                backHref="/history"
+                backLabel="Retour"
+            />
         );
     }
 
     if (isLoading) {
+        return <PageLoading label="Chargement des records..." />;
+    }
+
+    if (statsError || raceError) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des records..." />
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les records."
+                backHref="/history"
+                backLabel="Retour"
+            />
         );
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/history?u=${universeId}`}
-                >
-                    Palmares
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Palmares", href: "/history" },
+                    { label: "Records" },
+                ]} />
             </div>
 
             {/* Header */}

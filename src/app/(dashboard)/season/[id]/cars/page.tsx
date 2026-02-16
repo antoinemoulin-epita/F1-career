@@ -3,18 +3,17 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
-    AlertCircle,
-    ArrowLeft,
     Car01,
     Edit01,
     Plus,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { Select } from "@/components/base/select/select";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     Dialog,
     DialogTrigger,
@@ -306,47 +305,28 @@ export default function CarsPage() {
     );
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des voitures..." />
-            </div>
-        );
+        return <PageLoading label="Chargement des voitures..." />;
     }
 
     if (error) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger les voitures de cette saison.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href={`/season/${seasonId}`} size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour a la saison
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les voitures de cette saison."
+                backHref={`/season/${seasonId}`}
+                backLabel="Retour a la saison"
+            />
         );
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button color="link-gray" size="sm" iconLeading={ArrowLeft} href={`/season/${seasonId}`}>
-                    Retour a la saison
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Saison", href: `/season/${seasonId}` },
+                    { label: "Voitures" },
+                ]} />
             </div>
 
             {/* Header */}
@@ -446,7 +426,7 @@ export default function CarsPage() {
                     car={editingCar as Car}
                     team={editingCar.team_id ? teamMap.get(editingCar.team_id) : undefined}
                     suggestedMotor={
-                        editingCar.team_id
+                        editingCar.team_id && teamMap.get(editingCar.team_id)
                             ? getSuggestedMotor(
                                   teamMap.get(editingCar.team_id)!,
                                   supplierMap,

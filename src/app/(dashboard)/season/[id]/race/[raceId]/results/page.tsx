@@ -9,7 +9,6 @@ import {
 } from "react-aria-components";
 import {
     AlertCircle,
-    ArrowLeft,
     CheckCircle,
     CloudRaining01,
     DotsGrid,
@@ -21,8 +20,9 @@ import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { Select } from "@/components/base/select/select";
 import { TextArea } from "@/components/base/textarea/textarea";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
+import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { useRace, useQualifying } from "@/hooks/use-qualifying";
 import { useDrivers } from "@/hooks/use-drivers";
 import { useTeams } from "@/hooks/use-teams";
@@ -383,46 +383,54 @@ export default function RaceResultsPage() {
         );
     };
 
-    // ─── Loading ────────────────────────────────────────────────────────────
-
-    if (raceLoading || driversLoading || qualifyingLoading || resultsLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des resultats..." />
-            </div>
-        );
-    }
-
-    // ─── Error ──────────────────────────────────────────────────────────────
+    if (raceLoading || driversLoading || qualifyingLoading || resultsLoading) return <PageLoading label="Chargement des resultats..." />;
 
     if (raceError || !race) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger les donnees de cette course.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button
-                            href={`/season/${seasonId}/calendar`}
-                            size="md"
-                            color="secondary"
-                            iconLeading={ArrowLeft}
-                        >
-                            Retour au calendrier
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les donnees de cette course."
+                backHref={`/season/${seasonId}/calendar`}
+                backLabel="Retour au calendrier"
+            />
+        );
+    }
+
+    // ─── Qualifying guard (skip if editing existing results) ─────────────
+
+    const isEditMode = existingResults && existingResults.length > 0;
+    const hasQualifying = qualifyingData && qualifyingData.length > 0;
+
+    if (!isEditMode && !hasQualifying) {
+        return (
+            <div>
+                <div className="mb-6">
+                    <Breadcrumbs
+                        items={[
+                            { label: "Saison", href: `/season/${seasonId}` },
+                            { label: "Course" },
+                            { label: "Resultats" },
+                        ]}
+                    />
+                </div>
+                <div className="flex min-h-60 flex-col items-center justify-center gap-4">
+                    <FeaturedIcon icon={AlertCircle} color="warning" theme="light" size="lg" />
+                    <div className="text-center">
+                        <h2 className="text-lg font-semibold text-primary">
+                            Qualifications requises
+                        </h2>
+                        <p className="mt-1 text-sm text-tertiary">
+                            Vous devez d&apos;abord saisir les qualifications avant de rentrer les resultats.
+                        </p>
+                    </div>
+                    <Button
+                        href={`/season/${seasonId}/race/${raceId}/qualifying`}
+                        size="md"
+                        color="primary"
+                    >
+                        Aller aux qualifications
+                    </Button>
+                </div>
             </div>
         );
     }
@@ -433,16 +441,15 @@ export default function RaceResultsPage() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/season/${seasonId}/calendar`}
-                >
-                    Retour au calendrier
-                </Button>
+                <Breadcrumbs
+                    items={[
+                        { label: "Saison", href: `/season/${seasonId}` },
+                        { label: `GP ${race.round_number} — ${circuit?.flag_emoji ?? ""} ${circuit?.name ?? "Circuit"}`, href: `/season/${seasonId}/race/${raceId}/qualifying` },
+                        { label: "Resultats" },
+                    ]}
+                />
             </div>
 
             {/* Header */}

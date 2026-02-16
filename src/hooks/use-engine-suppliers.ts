@@ -1,7 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import type { EngineSupplierFormValues } from "@/lib/validators";
 
 const supabase = createClient();
 
@@ -23,5 +24,70 @@ export function useEngineSuppliers(seasonId: string) {
             return data;
         },
         enabled: !!seasonId,
+    });
+}
+
+function normalizeForm(form: EngineSupplierFormValues) {
+    return {
+        name: form.name.trim(),
+        nationality: form.nationality?.trim() || null,
+        note: form.note,
+        investment_level: form.investment_level,
+    };
+}
+
+export function useCreateEngineSupplier() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ seasonId, form }: { seasonId: string; form: EngineSupplierFormValues }) => {
+            const { data, error } = await supabase
+                .from("engine_suppliers")
+                .insert({ season_id: seasonId, ...normalizeForm(form) })
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: engineSupplierKeys.bySeason(variables.seasonId) });
+        },
+    });
+}
+
+export function useUpdateEngineSupplier() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, seasonId, form }: { id: string; seasonId: string; form: EngineSupplierFormValues }) => {
+            const { data, error } = await supabase
+                .from("engine_suppliers")
+                .update(normalizeForm(form))
+                .eq("id", id)
+                .select()
+                .single();
+            if (error) throw error;
+            return { ...data, seasonId };
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: engineSupplierKeys.bySeason(variables.seasonId) });
+        },
+    });
+}
+
+export function useDeleteEngineSupplier() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id }: { id: string; seasonId: string }) => {
+            const { error } = await supabase
+                .from("engine_suppliers")
+                .delete()
+                .eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: engineSupplierKeys.bySeason(variables.seasonId) });
+        },
     });
 }

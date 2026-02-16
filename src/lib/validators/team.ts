@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { validNationalityCodes } from "@/lib/constants/nationalities";
 
 export const teamSchema = z.object({
     // Identite
     name: z.string().min(2, "Le nom doit faire au moins 2 caracteres"),
     short_name: z.string().max(5, "5 caracteres max").optional().or(z.literal("")),
-    nationality: z.string().optional().or(z.literal("")),
+    nationality: z.enum(validNationalityCodes as [string, ...string[]]).or(z.literal("")).optional(),
     color_primary: z.string().optional().or(z.literal("")),
     color_secondary: z.string().optional().or(z.literal("")),
     // Staff

@@ -62,7 +62,8 @@ export function useCreateUniverse() {
                 .single();
             if (error) throw error;
 
-            await supabase.rpc("fn_seed_default_points", { p_universe_id: data.id });
+            const { error: rpcError } = await supabase.rpc("fn_seed_default_points", { p_universe_id: data.id });
+            if (rpcError) throw rpcError;
 
             return data;
         },

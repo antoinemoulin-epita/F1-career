@@ -3,8 +3,6 @@
 import { useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-    AlertCircle,
-    ArrowLeft,
     CheckCircle,
     Download01,
     Upload01,
@@ -13,8 +11,8 @@ import {
 } from "@untitledui/icons";
 import { Button } from "@/components/base/buttons/button";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { useUniverse } from "@/hooks/use-universes";
 import { useExportUniverse, useImportUniverse, parseBackupFile } from "@/hooks/use-backup";
 import type { UniverseExportData } from "@/lib/import/json-schema";
@@ -72,45 +70,21 @@ export default function BackupPage() {
     };
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Loading..." />
-            </div>
-        );
+        return <PageLoading label="Loading..." />;
     }
 
     if (error || !universe) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Universe not found</EmptyState.Title>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Back to universes
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
-        );
+        return <PageError title="Universe not found" backHref="/" backLabel="Back to universes" />;
     }
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/universe/${universe.id}`}
-                >
-                    Back to universe
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Univers", href: `/universe/${params.id}` },
+                    { label: "Backup" },
+                ]} />
             </div>
 
             {/* Header */}

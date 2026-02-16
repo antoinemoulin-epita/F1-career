@@ -8,8 +8,6 @@ import {
     useDragAndDrop,
 } from "react-aria-components";
 import {
-    AlertCircle,
-    ArrowLeft,
     CheckCircle,
     CloudRaining01,
     DotsGrid,
@@ -17,8 +15,8 @@ import {
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { useRace, useQualifying, useSaveQualifying } from "@/hooks/use-qualifying";
 import { useDrivers } from "@/hooks/use-drivers";
 import { useTeams } from "@/hooks/use-teams";
@@ -180,47 +178,16 @@ export default function QualifyingPage() {
         );
     };
 
-    // ─── Loading ─────────────────────────────────────────────────────────────
-
-    if (raceLoading || driversLoading || qualifyingLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des qualifications..." />
-            </div>
-        );
-    }
-
-    // ─── Error ───────────────────────────────────────────────────────────────
+    if (raceLoading || driversLoading || qualifyingLoading) return <PageLoading label="Chargement des qualifications..." />;
 
     if (raceError || !race) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger les donnees de cette course.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button
-                            href={`/season/${seasonId}/calendar`}
-                            size="md"
-                            color="secondary"
-                            iconLeading={ArrowLeft}
-                        >
-                            Retour au calendrier
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les donnees de cette course."
+                backHref={`/season/${seasonId}/calendar`}
+                backLabel="Retour au calendrier"
+            />
         );
     }
 
@@ -241,16 +208,14 @@ export default function QualifyingPage() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/season/${seasonId}/calendar`}
-                >
-                    Retour au calendrier
-                </Button>
+                <Breadcrumbs
+                    items={[
+                        { label: "Saison", href: `/season/${seasonId}` },
+                        { label: `GP ${race.round_number} — ${circuit?.flag_emoji ?? ""} ${circuit?.name ?? "Circuit"}` },
+                    ]}
+                />
             </div>
 
             {/* Header */}

@@ -4,17 +4,18 @@ import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
-    ArrowLeft,
     CheckCircle,
     Edit05,
     Plus,
     Trash02,
+    Upload01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { TextArea } from "@/components/base/textarea/textarea";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Tabs } from "@/components/application/tabs/tabs";
 import {
     Dialog,
@@ -25,6 +26,8 @@ import {
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { ArcForm } from "@/components/forms/arc-form";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
+import { useImportArcs } from "@/hooks/use-import-arcs";
 import { useAllNarrativeArcs, useUpdateArc, useDeleteArc } from "@/hooks/use-narrative-arcs";
 import { useUniverse } from "@/hooks/use-universes";
 import {
@@ -33,6 +36,7 @@ import {
     arcStatusLabels,
     arcStatusColor,
 } from "@/lib/constants/arc-labels";
+import { narrativeArcSchema } from "@/lib/validators";
 import type { NarrativeArc } from "@/types";
 
 // ─── ArcCard ────────────────────────────────────────────────────────────────
@@ -388,14 +392,51 @@ function DeleteArcDialog({
     );
 }
 
+// ─── Import config ─────────────────────────────────────────────────────────
+
+const arcExampleJson = JSON.stringify(
+    [
+        {
+            name: "Rivalite Hamilton / Verstappen",
+            description: "Duel au sommet pour le titre",
+            arc_type: "rivalry",
+            status: "developing",
+            importance: 4,
+        },
+    ],
+    null,
+    2,
+);
+
+const arcFields = [
+    { name: "name", required: true, description: "Nom de l'arc" },
+    { name: "description", required: false, description: "Description de l'arc" },
+    {
+        name: "arc_type",
+        required: true,
+        description:
+            "Type : transfer, rivalry, technical, sponsor, entry_exit, drama, regulation, other",
+    },
+    {
+        name: "status",
+        required: true,
+        description: "Statut : signal, developing, confirmed, resolved",
+    },
+    { name: "importance", required: true, description: "1 (Mineur) a 5 (Majeur)" },
+    { name: "related_driver_ids", required: false, description: "Tableau d'IDs de pilotes" },
+    { name: "related_team_ids", required: false, description: "Tableau d'IDs d'equipes" },
+    { name: "resolution_summary", required: false, description: "Resume de la resolution" },
+];
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function ArcsPage() {
     const params = useParams<{ id: string }>();
     const universeId = params.id;
 
-    const { data: universe, isLoading: universeLoading } = useUniverse(universeId);
-    const { data: arcs, isLoading: arcsLoading } = useAllNarrativeArcs(universeId);
+    const { data: universe, isLoading: universeLoading, error: universeError } = useUniverse(universeId);
+    const { data: arcs, isLoading: arcsLoading, error: arcsError } = useAllNarrativeArcs(universeId);
+    const importArcs = useImportArcs();
 
     const [editingArc, setEditingArc] = useState<NarrativeArc | null>(null);
     const [resolvingArc, setResolvingArc] = useState<NarrativeArc | null>(null);
@@ -412,51 +453,23 @@ export default function ArcsPage() {
     }, [arcs]);
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des arcs..." />
-            </div>
-        );
+        return <PageLoading label="Chargement des arcs..." />;
     }
 
-    if (!universe) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Univers introuvable</EmptyState.Title>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
-        );
+    if (universeError || arcsError || !universe) {
+        return <PageError title="Erreur de chargement" backHref="/" backLabel="Retour" />;
     }
 
     const total = arcs?.length ?? 0;
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/universe/${universeId}`}
-                >
-                    Retour a l&apos;univers
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Univers", href: `/universe/${universeId}` },
+                    { label: "Arcs narratifs" },
+                ]} />
             </div>
 
             {/* Header */}
@@ -469,7 +482,23 @@ export default function ArcsPage() {
                         {total} arc{total !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <CreateArcDialog universeId={universeId} />
+                <div className="flex items-center gap-3">
+                    <ImportJsonDialog
+                        title="Importer des arcs"
+                        description="Importez des arcs narratifs depuis un fichier JSON."
+                        exampleData={arcExampleJson}
+                        fields={arcFields}
+                        schema={narrativeArcSchema}
+                        onImport={(items) => importArcs.mutate({ universeId, rows: items })}
+                        isPending={importArcs.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                    <CreateArcDialog universeId={universeId} />
+                </div>
             </div>
 
             {/* Content */}

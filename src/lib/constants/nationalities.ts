@@ -1,0 +1,42 @@
+export const nationalityItems = [
+    { id: "GBR", label: "Grande-Bretagne" },
+    { id: "GER", label: "Allemagne" },
+    { id: "FRA", label: "France" },
+    { id: "ITA", label: "Italie" },
+    { id: "ESP", label: "Espagne" },
+    { id: "NED", label: "Pays-Bas" },
+    { id: "AUS", label: "Australie" },
+    { id: "AUT", label: "Autriche" },
+    { id: "BRA", label: "Bresil" },
+    { id: "CAN", label: "Canada" },
+    { id: "FIN", label: "Finlande" },
+    { id: "JPN", label: "Japon" },
+    { id: "MEX", label: "Mexique" },
+    { id: "MON", label: "Monaco" },
+    { id: "NZL", label: "Nouvelle-Zelande" },
+    { id: "POL", label: "Pologne" },
+    { id: "RUS", label: "Russie" },
+    { id: "SUI", label: "Suisse" },
+    { id: "THA", label: "Thailande" },
+    { id: "USA", label: "Etats-Unis" },
+    { id: "CHN", label: "Chine" },
+    { id: "IND", label: "Inde" },
+    { id: "DEN", label: "Danemark" },
+    { id: "BEL", label: "Belgique" },
+    { id: "SWE", label: "Suede" },
+    { id: "ARG", label: "Argentine" },
+    { id: "COL", label: "Colombie" },
+    { id: "ISR", label: "Israel" },
+    { id: "KOR", label: "Coree du Sud" },
+    { id: "RSA", label: "Afrique du Sud" },
+];
+
+export const validNationalityCodes = nationalityItems.map((n) => n.id);
+
+export const importanceItems = [
+    { id: "1", label: "1 - Mineur" },
+    { id: "2", label: "2 - Faible" },
+    { id: "3", label: "3 - Moyen" },
+    { id: "4", label: "4 - Important" },
+    { id: "5", label: "5 - Majeur" },
+];

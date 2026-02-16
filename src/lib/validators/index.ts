@@ -14,3 +14,4 @@ export { carSchema, carFormDefaults, type CarFormValues } from "./car";
 export { rookiePoolSchema, rookiePoolFormDefaults, type RookiePoolFormValues } from "./rookie-pool";
 export { narrativeArcSchema, narrativeArcFormDefaults, type NarrativeArcFormValues } from "./narrative-arc";
 export { newsSchema, newsFormDefaults, type NewsFormValues } from "./news";
+export { engineSupplierSchema, engineSupplierFormDefaults, type EngineSupplierFormValues } from "./engine-supplier";

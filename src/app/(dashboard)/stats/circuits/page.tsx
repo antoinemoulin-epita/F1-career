@@ -2,14 +2,10 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-    AlertCircle,
-    ArrowLeft,
-} from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { useCircuitStats, type CircuitStat } from "@/hooks/use-stats";
 
 // ─── Weather badge ──────────────────────────────────────────────────────────
@@ -48,7 +44,7 @@ function CircuitTypeBadge({ type }: { type: string }) {
 
 export default function CircuitsStatsPage() {
     return (
-        <Suspense fallback={<div className="flex min-h-80 items-center justify-center"><LoadingIndicator size="md" label="Chargement..." /></div>}>
+        <Suspense fallback={<PageLoading label="Chargement..." />}>
             <CircuitsStatsContent />
         </Suspense>
     );
@@ -58,7 +54,7 @@ function CircuitsStatsContent() {
     const searchParams = useSearchParams();
     const universeId = searchParams.get("u") ?? "";
 
-    const { data: circuits, isLoading } = useCircuitStats(universeId);
+    const { data: circuits, isLoading, error } = useCircuitStats(universeId);
 
     const [selectedCircuitId, setSelectedCircuitId] = useState<string | null>(null);
 
@@ -68,29 +64,26 @@ function CircuitsStatsContent() {
 
     if (!universeId) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Univers manquant</EmptyState.Title>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/stats" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Univers manquant"
+                backHref="/stats"
+                backLabel="Retour"
+            />
         );
     }
 
     if (isLoading) {
+        return <PageLoading label="Chargement des circuits..." />;
+    }
+
+    if (error) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des circuits..." />
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger les statistiques des circuits."
+                backHref="/stats"
+                backLabel="Retour"
+            />
         );
     }
 
@@ -98,14 +91,10 @@ function CircuitsStatsContent() {
         return (
             <div>
                 <div className="mb-6">
-                    <Button
-                        color="link-gray"
-                        size="sm"
-                        iconLeading={ArrowLeft}
-                        href={`/stats?u=${universeId}`}
-                    >
-                        Statistiques
-                    </Button>
+                    <Breadcrumbs items={[
+                        { label: "Statistiques", href: "/stats" },
+                        { label: "Circuits" },
+                    ]} />
                 </div>
                 <div className="flex min-h-40 items-center justify-center">
                     <p className="text-sm text-tertiary">
@@ -118,16 +107,12 @@ function CircuitsStatsContent() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/stats?u=${universeId}`}
-                >
-                    Statistiques
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Statistiques", href: "/stats" },
+                    { label: "Circuits" },
+                ]} />
             </div>
 
             {/* Header */}

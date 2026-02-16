@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
-    ArrowLeft,
     Edit05,
     Plus,
     Trash02,
+    Upload01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import {
     Dialog,
     DialogTrigger,
@@ -22,9 +23,13 @@ import {
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { NewsForm } from "@/components/forms/news-form";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
+import { useImportNews } from "@/hooks/use-import-news";
 import { useNews, useDeleteNews } from "@/hooks/use-news";
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
 import { useSeason } from "@/hooks/use-seasons";
+import { newsImportSchema, type NewsImportValues } from "@/lib/validators/news-import";
+import type { NewsFormValues } from "@/lib/validators";
 import { newsTypeLabels, newsTypeBadgeColor } from "@/lib/constants/arc-labels";
 import type { News } from "@/types";
 
@@ -277,6 +282,42 @@ function NewsCard({
     );
 }
 
+// ─── Import config ─────────────────────────────────────────────────────────
+
+const newsExampleJson = JSON.stringify(
+    [
+        {
+            headline: "Hamilton signe chez Ferrari",
+            content: "Lewis Hamilton rejoint la Scuderia pour 2025",
+            news_type: "transfer",
+            importance: 5,
+            after_round: 0,
+            arc: "Rivalite Hamilton / Verstappen",
+        },
+    ],
+    null,
+    2,
+);
+
+function buildNewsFields(arcNames: string[]) {
+    const arcDesc = arcNames.length > 0
+        ? `Nom de l'arc narratif : ${arcNames.join(", ")}`
+        : "Nom de l'arc narratif (aucun arc existant)";
+    return [
+        { name: "headline", required: true, description: "Titre de la news" },
+        { name: "content", required: false, description: "Contenu detaille" },
+        {
+            name: "news_type",
+            required: true,
+            description:
+                "Type : transfer, technical, sponsor, regulation, injury, retirement, other",
+        },
+        { name: "importance", required: true, description: "1 (Mineur) a 5 (Majeur)" },
+        { name: "after_round", required: false, description: "Apres quel round (0 = pre-saison)" },
+        { name: "arc", required: false, description: arcDesc },
+    ];
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function NewsPage() {
@@ -286,6 +327,7 @@ export default function NewsPage() {
     const { data: season, isLoading: seasonLoading } = useSeason(seasonId);
     const { data: news, isLoading: newsLoading } = useNews(seasonId);
     const { data: arcs } = useNarrativeArcs(season?.universe_id ?? "");
+    const importNews = useImportNews();
 
     const [editingNews, setEditingNews] = useState<News | null>(null);
     const [deletingNews, setDeletingNews] = useState<News | null>(null);
@@ -300,6 +342,38 @@ export default function NewsPage() {
         });
         return map;
     }, [arcs]);
+
+    const newsFields = useMemo(
+        () => buildNewsFields((arcs ?? []).map((a) => a.name)),
+        [arcs],
+    );
+
+    const resolveNews = useCallback(
+        (items: NewsImportValues[]) => {
+            const nameToId = new Map(
+                (arcs ?? []).map((a) => [a.name.toLowerCase(), a.id]),
+            );
+            const resolved: NewsFormValues[] = [];
+            const errors: string[] = [];
+
+            items.forEach((item, i) => {
+                const { arc, ...rest } = item;
+                if (arc) {
+                    const id = nameToId.get(arc.trim().toLowerCase());
+                    if (!id) {
+                        errors.push(`Element ${i + 1} : arc "${arc}" introuvable`);
+                        return;
+                    }
+                    resolved.push({ ...rest, arc_id: id });
+                } else {
+                    resolved.push({ ...rest, arc_id: null });
+                }
+            });
+
+            return { resolved, errors };
+        },
+        [arcs],
+    );
 
     // Group news by round
     const grouped = useMemo(() => {
@@ -322,34 +396,17 @@ export default function NewsPage() {
     }, [news]);
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des news..." />
-            </div>
-        );
+        return <PageLoading label="Chargement des news..." />;
     }
 
     if (!season) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Saison introuvable</EmptyState.Title>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Saison introuvable"
+                description="Impossible de trouver cette saison."
+                backHref="/"
+                backLabel="Retour"
+            />
         );
     }
 
@@ -357,16 +414,12 @@ export default function NewsPage() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/season/${seasonId}`}
-                >
-                    Retour a la saison
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Saison", href: `/season/${seasonId}` },
+                    { label: "News" },
+                ]} />
             </div>
 
             {/* Header */}
@@ -379,10 +432,27 @@ export default function NewsPage() {
                         {total} article{total !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <CreateNewsDialog
-                    seasonId={seasonId}
-                    universeId={season.universe_id}
-                />
+                <div className="flex items-center gap-3">
+                    <ImportJsonDialog<NewsImportValues, NewsFormValues>
+                        title="Importer des news"
+                        description="Importez des actualites depuis un fichier JSON."
+                        exampleData={newsExampleJson}
+                        fields={newsFields}
+                        schema={newsImportSchema}
+                        resolve={resolveNews}
+                        onImport={(items) => importNews.mutate({ seasonId, rows: items })}
+                        isPending={importNews.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                    <CreateNewsDialog
+                        seasonId={seasonId}
+                        universeId={season.universe_id}
+                    />
+                </div>
             </div>
 
             {/* Content */}

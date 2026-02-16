@@ -4,11 +4,11 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-    AlertCircle,
-    ArrowLeft,
     Calendar,
     Car01,
+    CheckCircle,
     ChevronRight,
+    Tool01,
     CloudRaining01,
     File06,
     Flag06,
@@ -19,8 +19,8 @@ import {
 } from "@untitledui/icons";
 import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Table, TableCard } from "@/components/application/table/table";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { useSeason } from "@/hooks/use-seasons";
@@ -28,6 +28,7 @@ import { useCalendar } from "@/hooks/use-calendar";
 import { useDrivers } from "@/hooks/use-drivers";
 import { useTeams } from "@/hooks/use-teams";
 import { useCars } from "@/hooks/use-cars";
+import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
 import { useDriverPredictions } from "@/hooks/use-predictions";
 import {
     useDriverStandings,
@@ -528,6 +529,74 @@ function NarrativeArcsSection({
     );
 }
 
+// ─── PreSeasonChecklist ─────────────────────────────────────────────────────
+
+function PreSeasonChecklist({
+    seasonId,
+    engineSuppliersCount,
+    teamsCount,
+    driversCount,
+    carsCount,
+    calendarCount,
+    predictionsCount,
+}: {
+    seasonId: string;
+    engineSuppliersCount: number;
+    teamsCount: number;
+    driversCount: number;
+    carsCount: number;
+    calendarCount: number;
+    predictionsCount: number;
+}) {
+    const items = [
+        { label: "Motoristes", count: engineSuppliersCount, required: 1, href: `/season/${seasonId}/engine-suppliers` },
+        { label: "Equipes", count: teamsCount, required: 2, href: `/season/${seasonId}/teams` },
+        { label: "Pilotes", count: driversCount, required: 2, href: `/season/${seasonId}/drivers` },
+        { label: "Voitures", count: carsCount, required: 1, href: `/season/${seasonId}/cars` },
+        { label: "Calendrier", count: calendarCount, required: 1, href: `/season/${seasonId}/calendar` },
+        { label: "Predictions", count: predictionsCount, required: 1, href: `/season/${seasonId}/predictions` },
+    ];
+
+    const allReady = items.every((item) => item.count >= item.required);
+
+    return (
+        <div className="mt-6 rounded-xl border border-secondary p-5">
+            <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-md font-semibold text-primary">Checklist pre-saison</h3>
+                {allReady ? (
+                    <Badge size="sm" color="success" type="pill-color">Pret</Badge>
+                ) : (
+                    <Badge size="sm" color="warning" type="pill-color">Incomplet</Badge>
+                )}
+            </div>
+            <div className="flex flex-col gap-2">
+                {items.map((item) => {
+                    const done = item.count >= item.required;
+                    return (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition duration-100 ease-linear hover:bg-primary_hover"
+                        >
+                            {done ? (
+                                <CheckCircle className="size-4 shrink-0 text-fg-success-primary" />
+                            ) : (
+                                <div className="size-4 shrink-0 rounded-full border-2 border-tertiary" />
+                            )}
+                            <span className={`text-sm ${done ? "text-tertiary" : "font-medium text-primary"}`}>
+                                {item.label}
+                            </span>
+                            <span className="ml-auto text-xs text-tertiary">
+                                {item.count}/{item.required}
+                            </span>
+                        </Link>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function SeasonDashboardPage() {
@@ -538,6 +607,7 @@ export default function SeasonDashboardPage() {
     const { data: drivers } = useDrivers(seasonId);
     const { data: teams } = useTeams(seasonId);
     const { data: cars } = useCars(seasonId);
+    const { data: engineSuppliers } = useEngineSuppliers(seasonId);
     const { data: driverStandings } = useDriverStandings(seasonId);
     const { data: constructorStandings } = useConstructorStandings(seasonId);
     const { data: driverPredictions } = useDriverPredictions(seasonId);
@@ -560,47 +630,16 @@ export default function SeasonDashboardPage() {
     const leaderDriverPts = driverStandings?.[0]?.points ?? 0;
     const leaderTeamPts = constructorStandings?.[0]?.points ?? 0;
 
-    // ─── Loading ────────────────────────────────────────────────────────────
-
-    if (seasonLoading || calendarLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement de la saison..." />
-            </div>
-        );
-    }
-
-    // ─── Error ──────────────────────────────────────────────────────────────
+    if (seasonLoading || calendarLoading) return <PageLoading label="Chargement de la saison..." />;
 
     if (seasonError || !season) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon
-                            icon={AlertCircle}
-                            color="error"
-                            theme="light"
-                        />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                        <EmptyState.Description>
-                            Impossible de charger cette saison.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button
-                            href="/universe"
-                            size="md"
-                            color="secondary"
-                            iconLeading={ArrowLeft}
-                        >
-                            Retour aux univers
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                description="Impossible de charger cette saison."
+                backHref="/universe"
+                backLabel="Retour aux univers"
+            />
         );
     }
 
@@ -610,16 +649,14 @@ export default function SeasonDashboardPage() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/universe/${season.universe_id}`}
-                >
-                    Retour a l&apos;univers
-                </Button>
+                <Breadcrumbs
+                    items={[
+                        { label: "Univers", href: `/universe/${season.universe_id}` },
+                        { label: `Saison ${season.year}` },
+                    ]}
+                />
             </div>
 
             {/* Header */}
@@ -643,7 +680,7 @@ export default function SeasonDashboardPage() {
             </div>
 
             {/* Nav cards */}
-            <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
+            <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <NavCard
                     href={`/season/${seasonId}/calendar`}
                     icon={Calendar}
@@ -651,16 +688,22 @@ export default function SeasonDashboardPage() {
                     count={totalCount}
                 />
                 <NavCard
-                    href={`/season/${seasonId}/drivers`}
-                    icon={User01}
-                    label={`Pilote${(drivers?.length ?? 0) !== 1 ? "s" : ""}`}
-                    count={drivers?.length ?? 0}
+                    href={`/season/${seasonId}/engine-suppliers`}
+                    icon={Tool01}
+                    label={`Motoriste${(engineSuppliers?.length ?? 0) !== 1 ? "s" : ""}`}
+                    count={engineSuppliers?.length ?? 0}
                 />
                 <NavCard
                     href={`/season/${seasonId}/teams`}
                     icon={Users01}
                     label={`Equipe${(teams?.length ?? 0) !== 1 ? "s" : ""}`}
                     count={teams?.length ?? 0}
+                />
+                <NavCard
+                    href={`/season/${seasonId}/drivers`}
+                    icon={User01}
+                    label={`Pilote${(drivers?.length ?? 0) !== 1 ? "s" : ""}`}
+                    count={drivers?.length ?? 0}
                 />
                 <NavCard
                     href={`/season/${seasonId}/cars`}
@@ -681,6 +724,19 @@ export default function SeasonDashboardPage() {
                     count={newsData?.length ?? 0}
                 />
             </div>
+
+            {/* Pre-season checklist (only in preparation) */}
+            {seasonStatus === "preparation" && (
+                <PreSeasonChecklist
+                    seasonId={seasonId}
+                    engineSuppliersCount={engineSuppliers?.length ?? 0}
+                    teamsCount={teams?.length ?? 0}
+                    driversCount={drivers?.length ?? 0}
+                    carsCount={cars?.length ?? 0}
+                    calendarCount={totalCount}
+                    predictionsCount={driverPredictions?.length ?? 0}
+                />
+            )}
 
             {/* Next GP or Season completed */}
             <div className="mt-6">

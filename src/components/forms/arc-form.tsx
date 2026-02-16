@@ -14,6 +14,7 @@ import {
     type NarrativeArcFormValues,
 } from "@/lib/validators";
 import { arcTypeLabels, arcStatusLabels } from "@/lib/constants/arc-labels";
+import { importanceItems } from "@/lib/constants/nationalities";
 import type { NarrativeArc } from "@/types";
 
 // ─── RHF field helpers ──────────────────────────────────────────────────────
@@ -145,6 +146,7 @@ export function ArcForm({ universeId, arc, onSuccess, onCancel }: ArcFormProps) 
     ];
 
     // RHF controllers for Selects
+    const importanceField = useController({ name: "importance", control: form.control });
     const arcTypeField = useController({ name: "arc_type", control: form.control });
     const statusField = useController({ name: "status", control: form.control });
     const startedSeasonField = useController({ name: "started_season_id", control: form.control });
@@ -184,12 +186,15 @@ export function ArcForm({ universeId, arc, onSuccess, onCancel }: ArcFormProps) 
                     >
                         {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
                     </Select>
-                    <RHFNumberInput
-                        name="importance"
-                        control={form.control}
-                        label="Importance (1-5)"
-                        placeholder="2"
-                    />
+                    <Select
+                        label="Importance"
+                        placeholder="Selectionner"
+                        items={importanceItems}
+                        selectedKey={importanceField.field.value != null ? String(importanceField.field.value) : null}
+                        onSelectionChange={(key) => importanceField.field.onChange(key ? Number(key) : null)}
+                    >
+                        {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
+                    </Select>
                     <Select
                         label="Statut"
                         placeholder="Selectionner"

@@ -1,37 +1,45 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-    Globe02,
-    Calendar,
-    Flag06,
-    ClockRewind,
-    BarChart12,
-    Download01,
-    Settings01,
-    LifeBuoy01,
-} from "@untitledui/icons";
+import { usePathname } from "next/navigation";
+import { Globe02, Calendar, ClockRewind, BarChart12 } from "@untitledui/icons";
 import { SidebarNavigationSimple } from "@/components/application/app-navigation/sidebar-navigation/sidebar-simple";
-import type { NavItemType } from "@/components/application/app-navigation/config";
+import type { NavItemType, NavItemDividerType } from "@/components/application/app-navigation/config";
 
-const navItems: NavItemType[] = [
-    { label: "Universe", href: "/universe", icon: Globe02 },
-    { label: "Season", href: "/season", icon: Calendar },
-    { label: "Race", href: "/race", icon: Flag06 },
-    { label: "History", href: "/history", icon: ClockRewind },
-    { label: "Stats", href: "/stats", icon: BarChart12 },
-    { label: "Export", href: "/export", icon: Download01 },
-];
-
-const footerItems: NavItemType[] = [
-    { label: "Support", href: "/support", icon: LifeBuoy01 },
-    { label: "Settings", href: "/settings", icon: Settings01 },
+const navItems: (NavItemType | NavItemDividerType)[] = [
+    { label: "Univers", href: "/universe", icon: Globe02 },
+    { label: "Saison", href: "/season", icon: Calendar },
+    { divider: true },
+    {
+        label: "Palmares",
+        href: "/history",
+        icon: ClockRewind,
+        items: [
+            { label: "Champions", href: "/history/champions" },
+            { label: "Victoires", href: "/history/wins" },
+            { label: "Records", href: "/history/records" },
+            { label: "Saisons", href: "/history/seasons" },
+        ],
+    },
+    {
+        label: "Statistiques",
+        href: "/stats",
+        icon: BarChart12,
+        items: [
+            { label: "Duel Coequipiers", href: "/stats/head-to-head" },
+            { label: "Circuits", href: "/stats/circuits" },
+            { label: "Pilotes", href: "/stats/drivers" },
+            { label: "Comparaison", href: "/stats/compare" },
+        ],
+    },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+    const pathname = usePathname();
+
     return (
         <div className="flex min-h-screen">
-            <SidebarNavigationSimple items={navItems} footerItems={footerItems} />
+            <SidebarNavigationSimple items={navItems} footerItems={[]} activeUrl={pathname} />
             <main className="flex-1 overflow-auto p-6 lg:p-8">{children}</main>
         </div>
     );

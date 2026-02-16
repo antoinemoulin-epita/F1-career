@@ -2,15 +2,11 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-    AlertCircle,
-    ArrowLeft,
-} from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { Select } from "@/components/base/select/select";
-import { EmptyState } from "@/components/application/empty-state/empty-state";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
+import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
+import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { Table, TableCard } from "@/components/application/table/table";
 import { useAllTimeStats, type AllTimeDriverStat, type AllTimeTeamStat } from "@/hooks/use-history";
@@ -35,7 +31,7 @@ const FILTER_OPTIONS = [
 
 export default function WinsPage() {
     return (
-        <Suspense fallback={<div className="flex min-h-80 items-center justify-center"><LoadingIndicator size="md" label="Chargement..." /></div>}>
+        <Suspense fallback={<PageLoading label="Chargement..." />}>
             <WinsPageContent />
         </Suspense>
     );
@@ -92,52 +88,26 @@ function WinsPageContent() {
 
     if (!universeId) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Univers manquant</EmptyState.Title>
-                        <EmptyState.Description>
-                            Aucun univers selectionne.
-                        </EmptyState.Description>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/history" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Univers manquant"
+                description="Aucun univers selectionne."
+                backHref="/history"
+                backLabel="Retour"
+            />
         );
     }
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-80 items-center justify-center">
-                <LoadingIndicator size="md" label="Chargement des statistiques..." />
-            </div>
-        );
+        return <PageLoading label="Chargement des statistiques..." />;
     }
 
     if (error || !stats) {
         return (
-            <div className="flex min-h-80 items-center justify-center">
-                <EmptyState size="lg">
-                    <EmptyState.Header>
-                        <EmptyState.FeaturedIcon icon={AlertCircle} color="error" theme="light" />
-                    </EmptyState.Header>
-                    <EmptyState.Content>
-                        <EmptyState.Title>Erreur de chargement</EmptyState.Title>
-                    </EmptyState.Content>
-                    <EmptyState.Footer>
-                        <Button href="/history" size="md" color="secondary" iconLeading={ArrowLeft}>
-                            Retour
-                        </Button>
-                    </EmptyState.Footer>
-                </EmptyState>
-            </div>
+            <PageError
+                title="Erreur de chargement"
+                backHref="/history"
+                backLabel="Retour"
+            />
         );
     }
 
@@ -145,16 +115,12 @@ function WinsPageContent() {
 
     return (
         <div>
-            {/* Back link */}
+            {/* Breadcrumbs */}
             <div className="mb-6">
-                <Button
-                    color="link-gray"
-                    size="sm"
-                    iconLeading={ArrowLeft}
-                    href={`/history?u=${universeId}`}
-                >
-                    Palmares
-                </Button>
+                <Breadcrumbs items={[
+                    { label: "Palmares", href: "/history" },
+                    { label: "Victoires" },
+                ]} />
             </div>
 
             {/* Header */}
