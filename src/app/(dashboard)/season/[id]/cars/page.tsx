@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
     Car01,
     Edit01,
     Plus,
+    Upload01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
@@ -23,9 +24,13 @@ import {
 import { Table, TableCard } from "@/components/application/table/table";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { CarForm } from "@/components/forms/car-form";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { useCars } from "@/hooks/use-cars";
+import { useImportCars } from "@/hooks/use-import-cars";
 import { useTeams } from "@/hooks/use-teams";
 import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
+import { carImportSchema, type CarImportValues } from "@/lib/validators/car-import";
+import type { CarFormValues } from "@/lib/validators";
 import type { Car, CarWithStats, TeamWithBudget, EngineSupplier } from "@/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -271,6 +276,37 @@ function CarRow({
     );
 }
 
+// ─── Import config ─────────────────────────────────────────────────────────
+
+type CarImportResolved = CarFormValues & { team_id: string };
+
+const carExampleJson = JSON.stringify(
+    [
+        {
+            team: "Red Bull Racing",
+            motor: 9,
+            aero: 9,
+            chassis: 8,
+            engine_change_penalty: false,
+        },
+    ],
+    null,
+    2,
+);
+
+function buildCarFields(teamNames: string[]) {
+    const teamDesc = teamNames.length > 0
+        ? `Nom de l'equipe : ${teamNames.join(", ")}`
+        : "Nom de l'equipe (aucune equipe sans voiture)";
+    return [
+        { name: "team", required: true, description: teamDesc },
+        { name: "motor", required: true, description: "Note moteur (0–10)" },
+        { name: "aero", required: true, description: "Note aero (0–10)" },
+        { name: "chassis", required: true, description: "Note chassis (0–10)" },
+        { name: "engine_change_penalty", required: false, description: "Penalite changement moteur (true/false)" },
+    ];
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function CarsPage() {
@@ -280,6 +316,7 @@ export default function CarsPage() {
     const { data: cars, isLoading, error } = useCars(seasonId);
     const { data: teams } = useTeams(seasonId);
     const { data: suppliers } = useEngineSuppliers(seasonId);
+    const importCars = useImportCars();
 
     const [editingCar, setEditingCar] = useState<CarWithStats | null>(null);
 
@@ -297,6 +334,34 @@ export default function CarsPage() {
         const carTeamIds = new Set(cars?.map((c) => c.team_id) ?? []);
         return (teams ?? []).filter((t) => !carTeamIds.has(t.id));
     }, [teams, cars]);
+
+    const carFields = useMemo(
+        () => buildCarFields(teamsWithoutCar.map((t) => t.name).filter((n): n is string => !!n)),
+        [teamsWithoutCar],
+    );
+
+    const resolveCars = useCallback(
+        (items: CarImportValues[]) => {
+            const nameToId = new Map(
+                teamsWithoutCar.filter((t) => t.name).map((t) => [t.name!.toLowerCase(), t.id]),
+            );
+            const resolved: CarImportResolved[] = [];
+            const errors: string[] = [];
+
+            items.forEach((item, i) => {
+                const { team, ...rest } = item;
+                const id = nameToId.get(team.trim().toLowerCase());
+                if (!id) {
+                    errors.push(`Element ${i + 1} : equipe "${team}" introuvable ou a deja une voiture`);
+                    return;
+                }
+                resolved.push({ ...rest, team_id: id });
+            });
+
+            return { resolved, errors };
+        },
+        [teamsWithoutCar],
+    );
 
     // Position map (cars already sorted by total desc)
     const positionMap = useMemo(
@@ -337,11 +402,28 @@ export default function CarsPage() {
                         {cars?.length ?? 0} voiture{(cars?.length ?? 0) !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <CreateCarDialog
-                    seasonId={seasonId}
-                    teamsWithoutCar={teamsWithoutCar}
-                    supplierMap={supplierMap}
-                />
+                <div className="flex items-center gap-3">
+                    <ImportJsonDialog<CarImportValues, CarImportResolved>
+                        title="Importer des voitures"
+                        description="Importez des voitures depuis un fichier JSON. Chaque voiture est associee a une equipe par son nom."
+                        exampleData={carExampleJson}
+                        fields={carFields}
+                        schema={carImportSchema}
+                        resolve={resolveCars}
+                        onImport={(items) => importCars.mutate({ seasonId, rows: items })}
+                        isPending={importCars.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                    <CreateCarDialog
+                        seasonId={seasonId}
+                        teamsWithoutCar={teamsWithoutCar}
+                        supplierMap={supplierMap}
+                    />
+                </div>
             </div>
 
             {/* Content */}

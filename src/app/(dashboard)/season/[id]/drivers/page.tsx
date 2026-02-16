@@ -10,6 +10,7 @@ import {
     Upload01,
     User01,
 } from "@untitledui/icons";
+import { Avatar } from "@/components/base/avatar/avatar";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
@@ -29,6 +30,7 @@ import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { useDrivers, useDeleteDriver } from "@/hooks/use-drivers";
 import { useImportDrivers } from "@/hooks/use-import-drivers";
 import { useTeams } from "@/hooks/use-teams";
+import { nationalityToFlag } from "@/lib/constants/nationalities";
 import { driverImportSchema, type DriverImportValues } from "@/lib/validators/driver-import";
 import type { DriverFormValues } from "@/lib/validators";
 import type { Driver, DriverWithEffective, TeamWithBudget } from "@/types";
@@ -206,6 +208,15 @@ function DeleteDriverDialog({
     );
 }
 
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+function effectiveNoteColor(note: number): "success" | "brand" | "warning" | "error" {
+    if (note >= 8) return "success";
+    if (note >= 6) return "brand";
+    if (note >= 4) return "warning";
+    return "error";
+}
+
 // ─── DriverRow ──────────────────────────────────────────────────────────────
 
 function DriverRow({
@@ -236,10 +247,21 @@ function DriverRow({
     const acclDisplay =
         accl != null ? (accl >= 0 ? `+${accl}` : String(accl)) : "—";
 
+    const flag = nationalityToFlag(driver.nationality);
+
     return (
         <Table.Row id={driver.id!}>
             <Table.Cell>
                 <div className="flex items-center gap-2">
+                    {flag ? (
+                        <Avatar
+                            size="xs"
+                            placeholder={<span className="text-sm leading-none">{flag}</span>}
+                            contrastBorder={false}
+                        />
+                    ) : (
+                        <Avatar size="xs" contrastBorder={false} />
+                    )}
                     <p className="text-sm font-medium text-primary">
                         {driver.full_name}
                     </p>
@@ -285,9 +307,17 @@ function DriverRow({
                 <span className="text-sm text-tertiary">{acclDisplay}</span>
             </Table.Cell>
             <Table.Cell>
-                <span className="text-sm font-medium text-primary">
-                    {driver.effective_note ?? "—"}
-                </span>
+                {driver.effective_note != null ? (
+                    <Badge
+                        size="sm"
+                        color={effectiveNoteColor(driver.effective_note)}
+                        type="pill-color"
+                    >
+                        {driver.effective_note}
+                    </Badge>
+                ) : (
+                    <span className="text-sm text-tertiary">—</span>
+                )}
             </Table.Cell>
             <Table.Cell>
                 <Dropdown.Root>
