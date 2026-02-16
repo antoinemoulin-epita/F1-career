@@ -145,4 +145,50 @@ describe("calculateAllTeamSurperformances", () => {
         expect(result[1].delta).toBe(-3);
         expect(result[1].budget_change).toBe(-1);
     });
+
+    it("delta exactement +2 → effect positive, budget +1", () => {
+        const inputs = [
+            { team_id: "t1", name: "Team A", predicted_position: 5, final_position: 3 },
+        ];
+        const result = calculateAllTeamSurperformances(inputs);
+        expect(result[0].delta).toBe(2);
+        expect(result[0].effect).toBe("positive");
+        expect(result[0].budget_change).toBe(1);
+    });
+
+    it("delta exactement -2 → effect negative, budget -1", () => {
+        const inputs = [
+            { team_id: "t1", name: "Team A", predicted_position: 3, final_position: 5 },
+        ];
+        const result = calculateAllTeamSurperformances(inputs);
+        expect(result[0].delta).toBe(-2);
+        expect(result[0].effect).toBe("negative");
+        expect(result[0].budget_change).toBe(-1);
+    });
+});
+
+describe("calculateAllDriverSurperformances — edge cases", () => {
+    it("delta exactement +2 pour jeune → potential_change +1", () => {
+        const inputs = [
+            { driver_id: "d1", name: "A", team: "T1", age: 22, predicted_position: 5, final_position: 3 },
+        ];
+        const result = calculateAllDriverSurperformances(inputs);
+        expect(result[0].delta).toBe(2);
+        expect(result[0].effect).toBe("positive");
+        expect(result[0].potential_change).toBe(1);
+    });
+
+    it("delta exactement -2 pour jeune → potential_change -1", () => {
+        const inputs = [
+            { driver_id: "d1", name: "A", team: "T1", age: 22, predicted_position: 3, final_position: 5 },
+        ];
+        const result = calculateAllDriverSurperformances(inputs);
+        expect(result[0].delta).toBe(-2);
+        expect(result[0].effect).toBe("negative");
+        expect(result[0].potential_change).toBe(-1);
+    });
+
+    it("tableau vide → resultat vide", () => {
+        expect(calculateAllDriverSurperformances([]).length).toBe(0);
+    });
 });

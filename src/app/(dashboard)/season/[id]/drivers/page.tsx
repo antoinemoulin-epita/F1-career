@@ -33,6 +33,7 @@ import { useTeams } from "@/hooks/use-teams";
 import { nationalityToFlag } from "@/lib/constants/nationalities";
 import { driverImportSchema, type DriverImportValues } from "@/lib/validators/driver-import";
 import type { DriverFormValues } from "@/lib/validators";
+import { DriverLink } from "@/components/profile/entity-link";
 import type { Driver, DriverWithEffective, TeamWithBudget } from "@/types";
 
 // ─── CreateDriverDialog ─────────────────────────────────────────────────────
@@ -262,9 +263,15 @@ function DriverRow({
                     ) : (
                         <Avatar size="xs" contrastBorder={false} />
                     )}
-                    <p className="text-sm font-medium text-primary">
-                        {driver.full_name}
-                    </p>
+                    {driver.person_id ? (
+                        <DriverLink personId={driver.person_id} className="text-sm font-medium">
+                            {driver.full_name}
+                        </DriverLink>
+                    ) : (
+                        <p className="text-sm font-medium text-primary">
+                            {driver.full_name}
+                        </p>
+                    )}
                     {driver.is_rookie && (
                         <Badge size="sm" color="brand" type="pill-color">
                             Rookie

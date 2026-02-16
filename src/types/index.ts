@@ -23,6 +23,9 @@ export type Regulation = Tables<"regulations">;
 export type HistoryChampion = Tables<"history_champions">;
 export type PointsSystem = Tables<"points_system">;
 export type RookiePool = Tables<"rookie_pool">;
+export type PersonIdentity = Tables<"person_identities">;
+export type TeamIdentity = Tables<"team_identities">;
+export type StaffMember = Tables<"staff_members">;
 
 // ─── View types ──────────────────────────────────────────────────────────────
 
@@ -32,6 +35,14 @@ export type DriverWithEffective = Tables<"v_drivers_with_effective">;
 export type CurrentStandingsDriver = Tables<"v_current_standings_drivers">;
 export type CurrentStandingsConstructor = Tables<"v_current_standings_constructors">;
 export type RaceSummary = Tables<"v_race_summary">;
+export type PersonCareer = Tables<"v_person_career">;
+export type PersonRaceHistory = Tables<"v_person_race_history">;
+export type PersonSeason = Tables<"v_person_seasons">;
+export type TeamIdentityHistory = Tables<"v_team_identity_history">;
+export type TeamIdentityFull = Tables<"v_team_identity_full">;
+export type CircuitProfile = Tables<"v_circuit_profile">;
+export type StaffCareer = Tables<"v_staff_career">;
+export type EngineSupplierHistory = Tables<"v_engine_supplier_history">;
 
 // ─── Insert types (create) ───────────────────────────────────────────────────
 

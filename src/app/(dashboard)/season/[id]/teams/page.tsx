@@ -30,6 +30,7 @@ import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
 import { useImportTeams } from "@/hooks/use-import-teams";
 import { useTeams, useDeleteTeam } from "@/hooks/use-teams";
 import { teamImportSchema, type TeamImportValues } from "@/lib/validators/team-import";
+import { TeamLink } from "@/components/profile/entity-link";
 import type { TeamFormValues } from "@/lib/validators";
 import type { Team, TeamWithBudget } from "@/types";
 
@@ -232,9 +233,15 @@ function TeamRow({
                         />
                     )}
                     <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-primary">
-                            {team.name}
-                        </p>
+                        {team.team_identity_id ? (
+                            <TeamLink teamIdentityId={team.team_identity_id} className="truncate text-sm font-medium">
+                                {team.name}
+                            </TeamLink>
+                        ) : (
+                            <p className="truncate text-sm font-medium text-primary">
+                                {team.name}
+                            </p>
+                        )}
                         {team.short_name && (
                             <p className="text-xs text-tertiary">{team.short_name}</p>
                         )}

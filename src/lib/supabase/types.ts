@@ -60,11 +60,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "calendar_circuit_id_fkey"
+            columns: ["circuit_id"]
+            isOneToOne: false
+            referencedRelation: "v_circuit_profile"
+            referencedColumns: ["circuit_id"]
+          },
+          {
             foreignKeyName: "calendar_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "calendar_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "calendar_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "calendar_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
           },
         ]
       }
@@ -106,6 +141,27 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "teams"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cars_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "cars_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "cars_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "cars_team_id_fkey"
@@ -182,6 +238,7 @@ export type Database = {
           last_name: string
           nationality: string | null
           note: number
+          person_id: string | null
           potential_final: number | null
           potential_max: number | null
           potential_min: number | null
@@ -209,6 +266,7 @@ export type Database = {
           last_name: string
           nationality?: string | null
           note: number
+          person_id?: string | null
           potential_final?: number | null
           potential_max?: number | null
           potential_min?: number | null
@@ -236,6 +294,7 @@ export type Database = {
           last_name?: string
           nationality?: string | null
           note?: number
+          person_id?: string | null
           potential_final?: number | null
           potential_max?: number | null
           potential_min?: number | null
@@ -248,6 +307,27 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "person_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_career"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["person_id"]
+          },
+          {
             foreignKeyName: "drivers_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
@@ -255,11 +335,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
             foreignKeyName: "drivers_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "drivers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "drivers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "drivers_team_id_fkey"
@@ -305,6 +434,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_suppliers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "engine_suppliers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "engine_suppliers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "engine_suppliers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
           },
         ]
       }
@@ -425,11 +582,67 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "narrative_arcs_resolved_season_id_fkey"
+            columns: ["resolved_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "narrative_arcs_resolved_season_id_fkey"
+            columns: ["resolved_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "narrative_arcs_resolved_season_id_fkey"
+            columns: ["resolved_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "narrative_arcs_resolved_season_id_fkey"
+            columns: ["resolved_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
             foreignKeyName: "narrative_arcs_started_season_id_fkey"
             columns: ["started_season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narrative_arcs_started_season_id_fkey"
+            columns: ["started_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "narrative_arcs_started_season_id_fkey"
+            columns: ["started_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "narrative_arcs_started_season_id_fkey"
+            columns: ["started_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "narrative_arcs_started_season_id_fkey"
+            columns: ["started_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
           },
           {
             foreignKeyName: "narrative_arcs_universe_id_fkey"
@@ -487,6 +700,81 @@ export type Database = {
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "news_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "news_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "news_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "news_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+        ]
+      }
+      person_identities: {
+        Row: {
+          bio: string | null
+          birth_year: number | null
+          created_at: string | null
+          first_name: string
+          id: string
+          last_name: string
+          nationality: string | null
+          photo_url: string | null
+          role: string
+          universe_id: string
+        }
+        Insert: {
+          bio?: string | null
+          birth_year?: number | null
+          created_at?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          nationality?: string | null
+          photo_url?: string | null
+          role?: string
+          universe_id: string
+        }
+        Update: {
+          bio?: string | null
+          birth_year?: number | null
+          created_at?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          nationality?: string | null
+          photo_url?: string | null
+          role?: string
+          universe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_identities_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
             referencedColumns: ["id"]
           },
         ]
@@ -554,11 +842,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "predictions_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "predictions_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "predictions_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "predictions_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
             foreignKeyName: "predictions_constructors_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "predictions_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "predictions_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "predictions_constructors_team_id_fkey"
@@ -610,11 +947,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "predictions_drivers_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["driver_id"]
+          },
+          {
             foreignKeyName: "predictions_drivers_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "predictions_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "predictions_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "predictions_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
           },
         ]
       }
@@ -654,6 +1026,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drivers_with_effective"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualifying_results_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "qualifying_results_race_id_fkey"
@@ -725,6 +1104,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_drivers_with_effective"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_results_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["driver_id"]
           },
           {
             foreignKeyName: "race_results_race_id_fkey"
@@ -844,6 +1230,34 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rookie_pool_drafted_season_id_fkey"
+            columns: ["drafted_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "rookie_pool_drafted_season_id_fkey"
+            columns: ["drafted_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "rookie_pool_drafted_season_id_fkey"
+            columns: ["drafted_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "rookie_pool_drafted_season_id_fkey"
+            columns: ["drafted_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
             foreignKeyName: "rookie_pool_universe_id_fkey"
             columns: ["universe_id"]
             isOneToOne: false
@@ -899,6 +1313,125 @@ export type Database = {
           },
         ]
       }
+      staff_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          person_id: string
+          role: string
+          season_id: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          person_id: string
+          role: string
+          season_id: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          person_id?: string
+          role?: string
+          season_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "person_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_members_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_career"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "staff_members_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "staff_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "staff_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "staff_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "staff_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_teams_with_budget"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       standings_constructors: {
         Row: {
           after_round: number
@@ -945,11 +1478,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "standings_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
             foreignKeyName: "standings_constructors_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "standings_constructors_team_id_fkey"
@@ -1019,10 +1601,95 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "standings_drivers_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["driver_id"]
+          },
+          {
             foreignKeyName: "standings_drivers_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standings_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+        ]
+      }
+      team_identities: {
+        Row: {
+          color_primary: string | null
+          color_secondary: string | null
+          created_at: string | null
+          description: string | null
+          founded_year: number | null
+          id: string
+          logo_url: string | null
+          name: string
+          nationality: string | null
+          short_name: string | null
+          universe_id: string
+        }
+        Insert: {
+          color_primary?: string | null
+          color_secondary?: string | null
+          created_at?: string | null
+          description?: string | null
+          founded_year?: number | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          nationality?: string | null
+          short_name?: string | null
+          universe_id: string
+        }
+        Update: {
+          color_primary?: string | null
+          color_secondary?: string | null
+          created_at?: string | null
+          description?: string | null
+          founded_year?: number | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          nationality?: string | null
+          short_name?: string | null
+          universe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_identities_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
             referencedColumns: ["id"]
           },
         ]
@@ -1047,6 +1714,7 @@ export type Database = {
           sponsor_objective: string | null
           sponsor_objective_met: boolean | null
           surperformance_bonus: number | null
+          team_identity_id: string | null
           team_principal: string | null
           technical_director: string | null
           title_sponsor: string | null
@@ -1071,6 +1739,7 @@ export type Database = {
           sponsor_objective?: string | null
           sponsor_objective_met?: boolean | null
           surperformance_bonus?: number | null
+          team_identity_id?: string | null
           team_principal?: string | null
           technical_director?: string | null
           title_sponsor?: string | null
@@ -1095,6 +1764,7 @@ export type Database = {
           sponsor_objective?: string | null
           sponsor_objective_met?: boolean | null
           surperformance_bonus?: number | null
+          team_identity_id?: string | null
           team_principal?: string | null
           technical_director?: string | null
           title_sponsor?: string | null
@@ -1109,11 +1779,67 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "teams_engine_supplier_id_fkey"
+            columns: ["engine_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["engine_supplier_id"]
+          },
+          {
             foreignKeyName: "teams_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "team_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_identity_id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["team_identity_id"]
           },
         ]
       }
@@ -1180,11 +1906,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transfers_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["driver_id"]
+          },
+          {
             foreignKeyName: "transfers_from_team_id_fkey"
             columns: ["from_team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_from_team_id_fkey"
+            columns: ["from_team_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "transfers_from_team_id_fkey"
+            columns: ["from_team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "transfers_from_team_id_fkey"
+            columns: ["from_team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "transfers_from_team_id_fkey"
@@ -1201,11 +1955,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transfers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "transfers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "transfers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "transfers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
             foreignKeyName: "transfers_to_team_id_fkey"
             columns: ["to_team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_to_team_id_fkey"
+            columns: ["to_team_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "transfers_to_team_id_fkey"
+            columns: ["to_team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "transfers_to_team_id_fkey"
+            columns: ["to_team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "transfers_to_team_id_fkey"
@@ -1254,6 +2057,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_current_season"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "fk_current_season"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "fk_current_season"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "fk_current_season"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
           },
         ]
       }
@@ -1317,10 +2148,51 @@ export type Database = {
             foreignKeyName: "cars_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: true
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "cars_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "cars_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "cars_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
             referencedRelation: "v_teams_with_budget"
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_circuit_profile: {
+        Row: {
+          base_rain_probability: number | null
+          circuit_id: string | null
+          circuit_type: Database["public"]["Enums"]["circuit_type"] | null
+          city: string | null
+          country: string | null
+          first_gp_year: number | null
+          flag_emoji: string | null
+          is_active: boolean | null
+          key_attribute: Database["public"]["Enums"]["key_attribute"] | null
+          mixed_races: number | null
+          name: string | null
+          prestige: number | null
+          region_climate: Database["public"]["Enums"]["region_climate"] | null
+          total_races: number | null
+          wet_races: number | null
+        }
+        Relationships: []
       }
       v_current_standings_constructors: {
         Row: {
@@ -1346,11 +2218,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "standings_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
             foreignKeyName: "standings_constructors_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "standings_constructors_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
           },
           {
             foreignKeyName: "standings_constructors_team_id_fkey"
@@ -1396,11 +2317,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "standings_drivers_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["driver_id"]
+          },
+          {
             foreignKeyName: "standings_drivers_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standings_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "standings_drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
           },
         ]
       }
@@ -1426,6 +2382,7 @@ export type Database = {
           last_name: string | null
           nationality: string | null
           note: number | null
+          person_id: string | null
           potential_final: number | null
           potential_max: number | null
           potential_min: number | null
@@ -1457,6 +2414,7 @@ export type Database = {
           last_name?: string | null
           nationality?: string | null
           note?: number | null
+          person_id?: string | null
           potential_final?: number | null
           potential_max?: number | null
           potential_min?: number | null
@@ -1488,6 +2446,7 @@ export type Database = {
           last_name?: string | null
           nationality?: string | null
           note?: number | null
+          person_id?: string | null
           potential_final?: number | null
           potential_max?: number | null
           potential_min?: number | null
@@ -1500,11 +2459,60 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "person_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_career"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["person_id"]
+          },
+          {
             foreignKeyName: "drivers_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "drivers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
           },
           {
             foreignKeyName: "drivers_team_id_fkey"
@@ -1517,8 +2525,210 @@ export type Database = {
             foreignKeyName: "drivers_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "drivers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "drivers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "drivers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
             referencedRelation: "v_teams_with_budget"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_engine_supplier_history: {
+        Row: {
+          client_teams: string | null
+          client_teams_count: number | null
+          engine_supplier_id: string | null
+          has_factory_team: boolean | null
+          investment_level: number | null
+          name: string | null
+          nationality: string | null
+          note: number | null
+          season_id: string | null
+          universe_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasons_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_person_career: {
+        Row: {
+          best_championship_finish: number | null
+          bio: string | null
+          birth_year: number | null
+          career_races: number | null
+          first_name: string | null
+          last_name: string | null
+          nationality: string | null
+          person_id: string | null
+          photo_url: string | null
+          role: string | null
+          seasons_count: number | null
+          total_dnfs: number | null
+          total_fastest_laps: number | null
+          total_podiums: number | null
+          total_points: number | null
+          total_poles: number | null
+          total_wins: number | null
+          universe_id: string | null
+          world_titles: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_identities_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_person_race_history: {
+        Row: {
+          circuit_country: string | null
+          circuit_name: string | null
+          circuit_type: Database["public"]["Enums"]["circuit_type"] | null
+          dnf_reason: string | null
+          fastest_lap: boolean | null
+          finish_position: number | null
+          flag_emoji: string | null
+          grid_position: number | null
+          person_id: string | null
+          points: number | null
+          quali_position: number | null
+          result_status: Database["public"]["Enums"]["result_status"] | null
+          round_number: number | null
+          season_id: string | null
+          team_color: string | null
+          team_name: string | null
+          weather: Database["public"]["Enums"]["weather_type"] | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "person_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_career"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["person_id"]
+          },
+        ]
+      }
+      v_person_seasons: {
+        Row: {
+          career_podiums: number | null
+          career_points: number | null
+          career_poles: number | null
+          career_races: number | null
+          career_wins: number | null
+          championship_position: number | null
+          contract_years_remaining: number | null
+          driver_id: string | null
+          first_name: string | null
+          is_first_driver: boolean | null
+          is_retiring: boolean | null
+          is_rookie: boolean | null
+          last_name: string | null
+          note: number | null
+          person_id: string | null
+          potential_final: number | null
+          potential_max: number | null
+          potential_min: number | null
+          potential_revealed: boolean | null
+          season_dnfs: number | null
+          season_fastest_laps: number | null
+          season_id: string | null
+          season_podiums: number | null
+          season_points: number | null
+          season_poles: number | null
+          season_wins: number | null
+          team_color: string | null
+          team_identity_id: string | null
+          team_name: string | null
+          world_titles: number | null
+          year: number | null
+          years_in_team: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "person_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_career"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "drivers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "team_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_identity_id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["team_identity_id"]
           },
         ]
       }
@@ -1544,6 +2754,251 @@ export type Database = {
             referencedRelation: "seasons"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "calendar_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "calendar_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "calendar_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "calendar_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+        ]
+      }
+      v_staff_career: {
+        Row: {
+          bio: string | null
+          first_name: string | null
+          last_name: string | null
+          person_id: string | null
+          person_role: string | null
+          photo_url: string | null
+          season_id: string | null
+          staff_role: string | null
+          team_championship_position: number | null
+          team_color: string | null
+          team_id: string | null
+          team_identity_id: string | null
+          team_name: string | null
+          team_season_points: number | null
+          universe_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_identities_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "staff_members_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+        ]
+      }
+      v_team_identity_full: {
+        Row: {
+          aero: number | null
+          chassis: number | null
+          color_primary: string | null
+          color_secondary: string | null
+          constructor_titles: number | null
+          current_season_id: string | null
+          current_team_id: string | null
+          current_year: number | null
+          description: string | null
+          engine_change_penalty: boolean | null
+          engine_investment: number | null
+          engine_name: string | null
+          engine_note: number | null
+          engine_supplier_id: string | null
+          engineer_level: number | null
+          founded_year: number | null
+          is_factory_team: boolean | null
+          logo_url: string | null
+          motor: number | null
+          name: string | null
+          nationality: string | null
+          owner_investment: number | null
+          shareholders: string | null
+          short_name: string | null
+          sponsor_duration: number | null
+          sponsor_investment: number | null
+          sponsor_objective: string | null
+          sponsor_objective_met: boolean | null
+          surperformance_bonus: number | null
+          team_identity_id: string | null
+          team_principal: string | null
+          technical_director: string | null
+          title_sponsor: string | null
+          universe_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_identities_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_engine_supplier_id_fkey"
+            columns: ["engine_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "engine_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_engine_supplier_id_fkey"
+            columns: ["engine_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["engine_supplier_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["current_season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+        ]
+      }
+      v_team_identity_history: {
+        Row: {
+          aero: number | null
+          championship_position: number | null
+          chassis: number | null
+          color_primary: string | null
+          color_secondary: string | null
+          engine_name: string | null
+          engine_note: number | null
+          engineer_level: number | null
+          is_factory_team: boolean | null
+          motor: number | null
+          season_id: string | null
+          season_podiums: number | null
+          season_points: number | null
+          season_poles: number | null
+          season_wins: number | null
+          team_id: string | null
+          team_identity_id: string | null
+          team_name: string | null
+          team_principal: string | null
+          technical_director: string | null
+          title_sponsor: string | null
+          universe_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_identities_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "team_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_identity_id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["team_identity_id"]
+          },
         ]
       }
       v_teams_with_budget: {
@@ -1568,6 +3023,7 @@ export type Database = {
           sponsor_objective: string | null
           sponsor_objective_met: boolean | null
           surperformance_bonus: number | null
+          team_identity_id: string | null
           team_principal: string | null
           technical_director: string | null
           title_sponsor: string | null
@@ -1594,6 +3050,7 @@ export type Database = {
           sponsor_objective?: string | null
           sponsor_objective_met?: boolean | null
           surperformance_bonus?: number | null
+          team_identity_id?: string | null
           team_principal?: string | null
           technical_director?: string | null
           title_sponsor?: string | null
@@ -1620,6 +3077,7 @@ export type Database = {
           sponsor_objective?: string | null
           sponsor_objective_met?: boolean | null
           surperformance_bonus?: number | null
+          team_identity_id?: string | null
           team_principal?: string | null
           technical_director?: string | null
           title_sponsor?: string | null
@@ -1634,11 +3092,67 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "teams_engine_supplier_id_fkey"
+            columns: ["engine_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["engine_supplier_id"]
+          },
+          {
             foreignKeyName: "teams_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "team_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_identity_id"]
+          },
+          {
+            foreignKeyName: "teams_team_identity_id_fkey"
+            columns: ["team_identity_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["team_identity_id"]
           },
         ]
       }

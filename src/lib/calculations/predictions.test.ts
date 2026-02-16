@@ -167,4 +167,50 @@ describe("computeConstructorPredictions", () => {
         expect(result[0].avg_driver_note).toBe(7);
         expect(result[0].score).toBe(7); // 0 + 7
     });
+
+    it("gere une equipe avec un seul pilote", () => {
+        const drivers = [
+            { id: "d1", team_id: "t1", full_name: null, effective_note: 8 },
+        ];
+        const cars = [{ team_id: "t1", total: 20 }];
+
+        const result = computeConstructorPredictions(drivers, cars);
+        expect(result.length).toBe(1);
+        expect(result[0].avg_driver_note).toBe(8);
+        expect(result[0].score).toBe(28);
+    });
+
+    it("gere 0 pilotes → tableau vide", () => {
+        expect(computeConstructorPredictions([], [{ team_id: "t1", total: 20 }]).length).toBe(0);
+    });
+
+    it("egalites de score → positions distinctes", () => {
+        const drivers = [
+            { id: "d1", team_id: "t1", full_name: null, effective_note: 8 },
+            { id: "d2", team_id: "t2", full_name: null, effective_note: 8 },
+        ];
+        const cars = [
+            { team_id: "t1", total: 20 },
+            { team_id: "t2", total: 20 },
+        ];
+
+        const result = computeConstructorPredictions(drivers, cars);
+        const positions = result.map((r) => r.predicted_position);
+        expect(positions).toEqual([1, 2]);
+    });
+});
+
+describe("computeDriverPredictions — edge cases supplementaires", () => {
+    it("egalites de score → positions distinctes sequentielles", () => {
+        const drivers = [
+            { id: "d1", team_id: "t1", full_name: "A", effective_note: 8 },
+            { id: "d2", team_id: "t1", full_name: "B", effective_note: 8 },
+            { id: "d3", team_id: "t1", full_name: "C", effective_note: 8 },
+        ];
+        const cars = [{ team_id: "t1", total: 20 }];
+
+        const result = computeDriverPredictions(drivers, cars);
+        const positions = result.map((r) => r.predicted_position);
+        expect(positions).toEqual([1, 2, 3]);
+    });
 });

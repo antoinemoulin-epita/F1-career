@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Globe02, Calendar, ClockRewind, BarChart12 } from "@untitledui/icons";
+import { Globe02, Calendar, ClockRewind, BarChart12, BookOpen01 } from "@untitledui/icons";
 import { SidebarNavigationSimple } from "@/components/application/app-navigation/sidebar-navigation/sidebar-simple";
 import type { NavItemType, NavItemDividerType } from "@/components/application/app-navigation/config";
 
@@ -30,6 +30,18 @@ const navItems: (NavItemType | NavItemDividerType)[] = [
             { label: "Circuits", href: "/stats/circuits" },
             { label: "Pilotes", href: "/stats/drivers" },
             { label: "Comparaison", href: "/stats/compare" },
+        ],
+    },
+    { divider: true },
+    {
+        label: "Encyclopedie",
+        href: "/profile",
+        icon: BookOpen01,
+        items: [
+            { label: "Pilotes", href: "/profile/driver" },
+            { label: "Equipes", href: "/profile/team" },
+            { label: "Circuits", href: "/profile/circuit" },
+            { label: "Motoristes", href: "/profile/engine-supplier" },
         ],
     },
 ];

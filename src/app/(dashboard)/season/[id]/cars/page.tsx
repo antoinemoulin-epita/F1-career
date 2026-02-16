@@ -32,18 +32,7 @@ import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
 import { carImportSchema, type CarImportValues } from "@/lib/validators/car-import";
 import type { CarFormValues } from "@/lib/validators";
 import type { Car, CarWithStats, TeamWithBudget, EngineSupplier } from "@/types";
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function getSuggestedMotor(
-    team: TeamWithBudget,
-    supplierMap: Map<string, EngineSupplier>,
-): number | null {
-    if (!team.engine_supplier_id) return null;
-    const supplier = supplierMap.get(team.engine_supplier_id);
-    if (!supplier) return null;
-    return team.is_factory_team ? supplier.note : supplier.note - 1;
-}
+import { getSuggestedMotor } from "@/lib/calculations/suggested-motor";
 
 // ─── CreateCarDialog ────────────────────────────────────────────────────────
 

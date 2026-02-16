@@ -137,19 +137,19 @@ describe("driverSchema", () => {
             expect(result.success).toBe(false);
         });
 
-        it("accepte les bornes (0 et 10)", () => {
-            expect(
-                driverSchema.safeParse({ ...driverFormDefaults, last_name: "T", note: 0 })
-                    .success,
-            ).toBe(false); // last_name too short, but let's use valid name
-            expect(
-                driverSchema.safeParse({ ...driverFormDefaults, last_name: "Te", note: 0 })
-                    .success,
-            ).toBe(true);
-            expect(
-                driverSchema.safeParse({ ...driverFormDefaults, last_name: "Te", note: 10 })
-                    .success,
-            ).toBe(true);
+        it("accepte note = 0 (borne min)", () => {
+            const result = driverSchema.safeParse({ ...driverFormDefaults, last_name: "Te", note: 0 });
+            expect(result.success).toBe(true);
+        });
+
+        it("accepte note = 10 (borne max)", () => {
+            const result = driverSchema.safeParse({ ...driverFormDefaults, last_name: "Te", note: 10 });
+            expect(result.success).toBe(true);
+        });
+
+        it("rejette note decimale (ex: 7.5)", () => {
+            const result = driverSchema.safeParse({ ...driverFormDefaults, last_name: "Te", note: 7.5 });
+            expect(result.success).toBe(false);
         });
     });
 
@@ -180,6 +180,15 @@ describe("driverSchema", () => {
             });
             expect(result.success).toBe(true);
         });
+
+        it("rejette birth_year decimal", () => {
+            const result = driverSchema.safeParse({
+                ...driverFormDefaults,
+                last_name: "Te",
+                birth_year: 2000.5,
+            });
+            expect(result.success).toBe(false);
+        });
     });
 
     describe("potential_min/max", () => {
@@ -201,6 +210,16 @@ describe("driverSchema", () => {
             });
             expect(result.success).toBe(false);
         });
+
+        it("accepte potential_min > potential_max (pas de refine)", () => {
+            const result = driverSchema.safeParse({
+                ...driverFormDefaults,
+                last_name: "Te",
+                potential_min: 9,
+                potential_max: 8,
+            });
+            expect(result.success).toBe(true);
+        });
     });
 
     describe("career stats nullable", () => {
@@ -220,6 +239,20 @@ describe("driverSchema", () => {
                 career_wins: -1,
             });
             expect(result.success).toBe(false);
+        });
+
+        it("accepte career stats a 0", () => {
+            const result = driverSchema.safeParse({
+                ...driverFormDefaults,
+                last_name: "Te",
+                career_wins: 0,
+                career_podiums: 0,
+                career_poles: 0,
+                career_points: 0,
+                career_races: 0,
+                world_titles: 0,
+            });
+            expect(result.success).toBe(true);
         });
     });
 });
@@ -263,7 +296,7 @@ describe("carSchema", () => {
 // ─── teamSchema ─────────────────────────────────────────────────────
 
 describe("teamSchema", () => {
-    it("accepte les valeurs par defaut", () => {
+    it("rejette les valeurs par defaut (name vide)", () => {
         const result = teamSchema.safeParse(teamFormDefaults);
         expect(result.success).toBe(false); // name is "" which is < 2 chars
     });
@@ -329,6 +362,17 @@ describe("teamSchema", () => {
             });
             expect(result.success).toBe(true);
         });
+
+        it("accepte les niveaux 1, 2, 3", () => {
+            for (const level of [1, 2, 3]) {
+                const result = teamSchema.safeParse({
+                    ...teamFormDefaults,
+                    name: "Ferrari",
+                    engineer_level: level,
+                });
+                expect(result.success).toBe(true);
+            }
+        });
     });
 
     describe("owner_investment / sponsor_investment (0-2)", () => {
@@ -348,6 +392,13 @@ describe("teamSchema", () => {
                 sponsor_investment: -1,
             });
             expect(result.success).toBe(false);
+        });
+
+        it("accepte owner_investment aux bornes (0 et 2)", () => {
+            const min = teamSchema.safeParse({ ...teamFormDefaults, name: "Ferrari", owner_investment: 0 });
+            const max = teamSchema.safeParse({ ...teamFormDefaults, name: "Ferrari", owner_investment: 2 });
+            expect(min.success).toBe(true);
+            expect(max.success).toBe(true);
         });
     });
 });

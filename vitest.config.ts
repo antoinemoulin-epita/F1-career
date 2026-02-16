@@ -11,6 +11,7 @@ export default defineConfig({
             include: [
                 "src/lib/calculations/**/*.ts",
                 "src/lib/validators/**/*.ts",
+                "src/lib/import/**/*.ts",
                 "src/lib/auth/**/*.ts",
                 "src/hooks/use-standings.ts",
             ],
