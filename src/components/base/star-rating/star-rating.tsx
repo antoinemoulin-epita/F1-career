@@ -68,7 +68,8 @@ function getFill(starIndex: number, value: number): "full" | "half" | "empty" {
 }
 
 function valueFromClick(starIndex: number, isLeftHalf: boolean): number {
-    return isLeftHalf ? starIndex + 0.5 : starIndex + 1;
+    const raw = isLeftHalf ? starIndex + 0.5 : starIndex + 1;
+    return Math.max(1, raw);
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
