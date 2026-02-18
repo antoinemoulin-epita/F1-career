@@ -523,6 +523,7 @@ export type Database = {
           arc_type: Database["public"]["Enums"]["arc_type"] | null
           created_at: string | null
           description: string | null
+          has_branches: boolean | null
           id: string
           importance: number | null
           name: string
@@ -541,6 +542,7 @@ export type Database = {
           arc_type?: Database["public"]["Enums"]["arc_type"] | null
           created_at?: string | null
           description?: string | null
+          has_branches?: boolean | null
           id?: string
           importance?: number | null
           name: string
@@ -559,6 +561,7 @@ export type Database = {
           arc_type?: Database["public"]["Enums"]["arc_type"] | null
           created_at?: string | null
           description?: string | null
+          has_branches?: boolean | null
           id?: string
           importance?: number | null
           name?: string
@@ -1313,30 +1316,167 @@ export type Database = {
           },
         ]
       }
-      staff_members: {
+      sponsor_objectives: {
         Row: {
           created_at: string | null
+          description: string | null
+          evaluated_value: number | null
           id: string
-          person_id: string
-          role: string
+          is_met: boolean | null
+          objective_type: Database["public"]["Enums"]["objective_type"]
           season_id: string
+          target_entity_id: string | null
+          target_value: number | null
           team_id: string
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
+          evaluated_value?: number | null
           id?: string
-          person_id: string
-          role: string
+          is_met?: boolean | null
+          objective_type: Database["public"]["Enums"]["objective_type"]
           season_id: string
+          target_entity_id?: string | null
+          target_value?: number | null
           team_id: string
         }
         Update: {
           created_at?: string | null
+          description?: string | null
+          evaluated_value?: number | null
           id?: string
+          is_met?: boolean | null
+          objective_type?: Database["public"]["Enums"]["objective_type"]
+          season_id?: string
+          target_entity_id?: string | null
+          target_value?: number | null
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_objectives_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_staff_career"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_full"
+            referencedColumns: ["current_team_id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "sponsor_objectives_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "v_teams_with_budget"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_members: {
+        Row: {
+          birth_year: number | null
+          contract_years_remaining: number
+          created_at: string | null
+          id: string
+          is_retiring: boolean
+          note: number | null
+          person_id: string
+          potential_final: number | null
+          potential_max: number | null
+          potential_min: number | null
+          potential_revealed: boolean
+          role: string
+          season_id: string
+          team_id: string
+          years_in_team: number
+        }
+        Insert: {
+          birth_year?: number | null
+          contract_years_remaining?: number
+          created_at?: string | null
+          id?: string
+          is_retiring?: boolean
+          note?: number | null
+          person_id: string
+          potential_final?: number | null
+          potential_max?: number | null
+          potential_min?: number | null
+          potential_revealed?: boolean
+          role: string
+          season_id: string
+          team_id: string
+          years_in_team?: number
+        }
+        Update: {
+          birth_year?: number | null
+          contract_years_remaining?: number
+          created_at?: string | null
+          id?: string
+          is_retiring?: boolean
+          note?: number | null
           person_id?: string
+          potential_final?: number | null
+          potential_max?: number | null
+          potential_min?: number | null
+          potential_revealed?: boolean
           role?: string
           season_id?: string
           team_id?: string
+          years_in_team?: number
         }
         Relationships: [
           {
@@ -3196,6 +3336,21 @@ export type Database = {
         | "injury"
         | "retirement"
         | "other"
+        | "on_track"
+        | "business"
+        | "world"
+        | "feeder_series"
+        | "personality"
+      objective_type:
+        | "constructor_position"
+        | "driver_position"
+        | "wins"
+        | "podiums"
+        | "points_minimum"
+        | "beat_team"
+        | "beat_driver"
+        | "race_win_at_circuit"
+        | "custom"
       race_status: "scheduled" | "qualifying_done" | "completed"
       region_climate:
         | "tropical"
@@ -3356,6 +3511,22 @@ export const Constants = {
         "injury",
         "retirement",
         "other",
+        "on_track",
+        "business",
+        "world",
+        "feeder_series",
+        "personality",
+      ],
+      objective_type: [
+        "constructor_position",
+        "driver_position",
+        "wins",
+        "podiums",
+        "points_minimum",
+        "beat_team",
+        "beat_driver",
+        "race_win_at_circuit",
+        "custom",
       ],
       race_status: ["scheduled", "qualifying_done", "completed"],
       region_climate: [

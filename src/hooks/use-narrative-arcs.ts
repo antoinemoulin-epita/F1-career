@@ -74,6 +74,7 @@ export function useCreateArc() {
                     resolved_season_id: form.resolved_season_id ?? null,
                     resolved_round: form.resolved_round ?? null,
                     resolution_summary: form.resolution_summary?.trim() || null,
+                    has_branches: form.has_branches ?? false,
                 })
                 .select()
                 .single();
@@ -122,6 +123,8 @@ export function useUpdateArc() {
                 payload.resolved_round = form.resolved_round ?? null;
             if (form.resolution_summary !== undefined)
                 payload.resolution_summary = form.resolution_summary?.trim() || null;
+            if (form.has_branches !== undefined)
+                payload.has_branches = form.has_branches;
 
             const { data, error } = await supabase
                 .from("narrative_arcs")

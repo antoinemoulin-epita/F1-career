@@ -3,6 +3,7 @@
 import { useForm, useController, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/base/buttons/button";
+import { Checkbox } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
 import { TextArea } from "@/components/base/textarea/textarea";
 import { Select } from "@/components/base/select/select";
@@ -116,6 +117,7 @@ export function ArcForm({ universeId, arc, onSuccess, onCancel }: ArcFormProps) 
                   resolved_season_id: arc.resolved_season_id ?? null,
                   resolved_round: arc.resolved_round ?? null,
                   resolution_summary: arc.resolution_summary ?? "",
+                  has_branches: arc.has_branches ?? false,
               }
             : narrativeArcFormDefaults,
     });
@@ -153,6 +155,7 @@ export function ArcForm({ universeId, arc, onSuccess, onCancel }: ArcFormProps) 
     const resolvedSeasonField = useController({ name: "resolved_season_id", control: form.control });
     const descriptionField = useController({ name: "description", control: form.control });
     const resolutionSummaryField = useController({ name: "resolution_summary", control: form.control });
+    const hasBranchesField = useController({ name: "has_branches", control: form.control });
 
     return (
         <form onSubmit={onSubmit}>
@@ -204,6 +207,12 @@ export function ArcForm({ universeId, arc, onSuccess, onCancel }: ArcFormProps) 
                     >
                         {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
                     </Select>
+                    <Checkbox
+                        label="Arc a embranchements"
+                        hint="Cet arc peut se resoudre de plusieurs facons"
+                        isSelected={hasBranchesField.field.value ?? false}
+                        onChange={hasBranchesField.field.onChange}
+                    />
                 </Section>
 
                 {/* Contexte */}

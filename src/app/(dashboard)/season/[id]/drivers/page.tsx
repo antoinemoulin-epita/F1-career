@@ -287,6 +287,16 @@ function DriverRow({
                             1er pilote
                         </Badge>
                     )}
+                    {driver.contract_years_remaining === 1 && (
+                        <Badge size="sm" color="warning" type="pill-color">
+                            Dernier an
+                        </Badge>
+                    )}
+                    {(driver.contract_years_remaining === 0 || driver.contract_years_remaining == null) && (
+                        <Badge size="sm" color="error" type="pill-color">
+                            Agent libre
+                        </Badge>
+                    )}
                 </div>
             </Table.Cell>
             <Table.Cell>

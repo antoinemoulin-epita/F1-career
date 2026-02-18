@@ -8,6 +8,7 @@ import { Select } from "@/components/base/select/select";
 import { Toggle } from "@/components/base/toggle/toggle";
 import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
 import { useCreateTeam, useUpdateTeam } from "@/hooks/use-teams";
+import { usePersonIdentities } from "@/hooks/use-staff";
 import { teamSchema, teamFormDefaults, type TeamFormValues } from "@/lib/validators";
 import { nationalityItems } from "@/lib/constants/nationalities";
 import type { Team } from "@/types";
@@ -68,6 +69,46 @@ function RHFNumberInput({
     );
 }
 
+function PersonComboBox({
+    name,
+    control,
+    label,
+    persons,
+}: {
+    name: keyof TeamFormValues;
+    control: Control<TeamFormValues>;
+    label: string;
+    persons: Array<{ id: string; first_name: string; last_name: string }>;
+}) {
+    const { field, fieldState } = useController({ name, control });
+    const currentValue = (field.value as string) ?? "";
+
+    // Build items: person names for matching
+    const items = persons.map((p) => ({
+        id: `${p.first_name} ${p.last_name}`,
+        label: `${p.first_name} ${p.last_name}`,
+    }));
+
+    return (
+        <Select.ComboBox
+            label={label}
+            placeholder="Rechercher..."
+            items={items}
+            inputValue={currentValue}
+            onInputChange={(v) => field.onChange(v)}
+            selectedKey={currentValue || null}
+            onSelectionChange={(key) => {
+                if (key != null) field.onChange(key as string);
+            }}
+            isInvalid={!!fieldState.error}
+            hint={fieldState.error?.message}
+            allowsCustomValue
+        >
+            {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
+        </Select.ComboBox>
+    );
+}
+
 // ─── Section wrapper ────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -97,15 +138,17 @@ const investmentItems = [
 
 interface TeamFormProps {
     seasonId: string;
+    universeId?: string;
     team?: Team;
     onSuccess: () => void;
     onCancel: () => void;
 }
 
-export function TeamForm({ seasonId, team, onSuccess, onCancel }: TeamFormProps) {
+export function TeamForm({ seasonId, universeId, team, onSuccess, onCancel }: TeamFormProps) {
     const createTeam = useCreateTeam();
     const updateTeam = useUpdateTeam();
     const { data: suppliers } = useEngineSuppliers(seasonId);
+    const { data: persons } = usePersonIdentities(universeId ?? "");
 
     const isEdit = !!team;
 
@@ -196,10 +239,27 @@ export function TeamForm({ seasonId, team, onSuccess, onCancel }: TeamFormProps)
 
                 {/* Staff */}
                 <Section title="Staff">
-                    <div className="grid grid-cols-2 gap-4">
-                        <RHFInput name="team_principal" control={form.control} label="Team Principal" placeholder="Christian Horner" />
-                        <RHFInput name="technical_director" control={form.control} label="Directeur Technique" placeholder="Adrian Newey" />
-                    </div>
+                    {persons && persons.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-4">
+                            <PersonComboBox
+                                name="team_principal"
+                                control={form.control}
+                                label="Team Principal"
+                                persons={persons}
+                            />
+                            <PersonComboBox
+                                name="technical_director"
+                                control={form.control}
+                                label="Directeur Technique"
+                                persons={persons}
+                            />
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                            <RHFInput name="team_principal" control={form.control} label="Team Principal" placeholder="Christian Horner" />
+                            <RHFInput name="technical_director" control={form.control} label="Directeur Technique" placeholder="Adrian Newey" />
+                        </div>
+                    )}
                     <Select
                         label="Niveau ingenieurs"
                         placeholder="Selectionner"

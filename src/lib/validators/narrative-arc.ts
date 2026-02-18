@@ -22,6 +22,7 @@ export const narrativeArcSchema = z.object({
     resolved_season_id: z.string().nullable().optional(),
     resolved_round: z.number().int().min(0).nullable().optional(),
     resolution_summary: z.string().optional().or(z.literal("")),
+    has_branches: z.boolean().optional(),
 });
 
 export type NarrativeArcFormValues = z.infer<typeof narrativeArcSchema>;
@@ -39,4 +40,5 @@ export const narrativeArcFormDefaults: NarrativeArcFormValues = {
     resolved_season_id: null,
     resolved_round: null,
     resolution_summary: "",
+    has_branches: false,
 };

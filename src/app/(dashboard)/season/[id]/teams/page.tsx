@@ -6,6 +6,7 @@ import {
     AlertCircle,
     Edit01,
     Plus,
+    Target04,
     Trash01,
     Upload01,
     Users01,
@@ -25,10 +26,16 @@ import {
 import { Table, TableCard } from "@/components/application/table/table";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { TeamForm } from "@/components/forms/team-form";
+import { SponsorObjectiveForm } from "@/components/forms/sponsor-objective-form";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
+import { useSeason } from "@/hooks/use-seasons";
 import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
 import { useImportTeams } from "@/hooks/use-import-teams";
 import { useTeams, useDeleteTeam } from "@/hooks/use-teams";
+import { useDrivers } from "@/hooks/use-drivers";
+import { useCircuits } from "@/hooks/use-circuits";
+import { useSponsorObjectives, useDeleteSponsorObjective } from "@/hooks/use-sponsor-objectives";
+import { objectiveTypeLabels, objectiveTypeBadgeColor } from "@/lib/constants/arc-labels";
 import { teamImportSchema, type TeamImportValues } from "@/lib/validators/team-import";
 import { TeamLink } from "@/components/profile/entity-link";
 import type { TeamFormValues } from "@/lib/validators";
@@ -36,7 +43,7 @@ import type { Team, TeamWithBudget } from "@/types";
 
 // ─── CreateTeamDialog ───────────────────────────────────────────────────────
 
-function CreateTeamDialog({ seasonId }: { seasonId: string }) {
+function CreateTeamDialog({ seasonId, universeId }: { seasonId: string; universeId: string }) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -66,6 +73,7 @@ function CreateTeamDialog({ seasonId }: { seasonId: string }) {
                             </div>
                             <TeamForm
                                 seasonId={seasonId}
+                                universeId={universeId}
                                 onSuccess={() => setIsOpen(false)}
                                 onCancel={() => setIsOpen(false)}
                             />
@@ -81,11 +89,13 @@ function CreateTeamDialog({ seasonId }: { seasonId: string }) {
 
 function EditTeamDialog({
     seasonId,
+    universeId,
     team,
     isOpen,
     onOpenChange,
 }: {
     seasonId: string;
+    universeId: string;
     team: Team;
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
@@ -114,6 +124,7 @@ function EditTeamDialog({
                             </div>
                             <TeamForm
                                 seasonId={seasonId}
+                                universeId={universeId}
                                 team={team}
                                 onSuccess={() => onOpenChange(false)}
                                 onCancel={() => onOpenChange(false)}
@@ -197,6 +208,145 @@ function DeleteTeamDialog({
     );
 }
 
+// ─── ObjectivesDialog ──────────────────────────────────────────────────────
+
+function ObjectivesDialog({
+    teamId,
+    teamName,
+    seasonId,
+    isOpen,
+    onOpenChange,
+}: {
+    teamId: string;
+    teamName: string;
+    seasonId: string;
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const { data: objectives } = useSponsorObjectives(teamId, seasonId);
+    const { data: driversRaw } = useDrivers(seasonId);
+    const { data: teamsRaw } = useTeams(seasonId);
+    const { data: circuitsRaw } = useCircuits();
+    const deleteObjective = useDeleteSponsorObjective();
+    const [showForm, setShowForm] = useState(false);
+
+    const drivers = (driversRaw ?? []).filter((d) => d.id != null);
+    const allTeams = (teamsRaw ?? [])
+        .filter((t): t is typeof t & { id: string; name: string } => t.id != null && t.name != null);
+    const circuits = (circuitsRaw ?? [])
+        .filter((c): c is typeof c & { id: string; name: string } => c.id != null && c.name != null);
+
+    return (
+        <DialogTrigger isOpen={isOpen} onOpenChange={onOpenChange}>
+            <ModalOverlay>
+                <Modal className="max-w-lg">
+                    <Dialog>
+                        <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
+                            <div className="mb-5 flex items-start gap-4">
+                                <FeaturedIcon
+                                    icon={Target04}
+                                    color="brand"
+                                    theme="light"
+                                    size="md"
+                                />
+                                <div>
+                                    <h2 className="text-lg font-semibold text-primary">
+                                        Objectifs sponsors
+                                    </h2>
+                                    <p className="mt-1 text-sm text-tertiary">
+                                        {teamName}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Existing objectives list */}
+                            {objectives && objectives.length > 0 && (
+                                <div className="mb-4 space-y-2">
+                                    {objectives.map((obj) => (
+                                        <div
+                                            key={obj.id}
+                                            className="flex items-center justify-between rounded-lg border border-secondary p-3"
+                                        >
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <Badge
+                                                        size="sm"
+                                                        color={objectiveTypeBadgeColor[obj.objective_type] ?? "gray"}
+                                                        type="pill-color"
+                                                    >
+                                                        {objectiveTypeLabels[obj.objective_type] ?? obj.objective_type}
+                                                    </Badge>
+                                                    {obj.target_value != null && (
+                                                        <span className="text-xs text-tertiary">
+                                                            Cible : {obj.target_value}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {obj.description && (
+                                                    <p className="mt-1 truncate text-xs text-tertiary">
+                                                        {obj.description}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                color="tertiary-destructive"
+                                                iconLeading={Trash01}
+                                                isLoading={deleteObjective.isPending}
+                                                onClick={() =>
+                                                    deleteObjective.mutate({
+                                                        id: obj.id,
+                                                        teamId,
+                                                        seasonId,
+                                                    })
+                                                }
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {objectives && objectives.length === 0 && !showForm && (
+                                <p className="mb-4 text-sm text-tertiary">Aucun objectif defini.</p>
+                            )}
+
+                            {/* Add form or button */}
+                            {showForm ? (
+                                <SponsorObjectiveForm
+                                    teamId={teamId}
+                                    seasonId={seasonId}
+                                    drivers={drivers}
+                                    teams={allTeams}
+                                    circuits={circuits}
+                                    onSuccess={() => setShowForm(false)}
+                                    onCancel={() => setShowForm(false)}
+                                />
+                            ) : (
+                                <div className="flex justify-end gap-3">
+                                    <Button
+                                        size="md"
+                                        color="secondary"
+                                        onClick={() => onOpenChange(false)}
+                                    >
+                                        Fermer
+                                    </Button>
+                                    <Button
+                                        size="md"
+                                        iconLeading={Plus}
+                                        onClick={() => setShowForm(true)}
+                                    >
+                                        Ajouter un objectif
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </Dialog>
+                </Modal>
+            </ModalOverlay>
+        </DialogTrigger>
+    );
+}
+
 // ─── Budget helpers ─────────────────────────────────────────────────────────
 
 /** Base ~90 M€ + 12.5 M€ par point de budget (cap F1 ≈ 140 M€ pour 4 pts) */
@@ -216,11 +366,13 @@ function TeamRow({
     supplierName,
     onEdit,
     onDelete,
+    onObjectives,
 }: {
     team: TeamWithBudget;
     supplierName: string | null;
     onEdit: () => void;
     onDelete: () => void;
+    onObjectives: () => void;
 }) {
     return (
         <Table.Row id={team.id!}>
@@ -276,10 +428,14 @@ function TeamRow({
                     <Dropdown.Popover className="w-min">
                         <Dropdown.Menu onAction={(key) => {
                             if (key === "edit") onEdit();
+                            if (key === "objectives") onObjectives();
                             if (key === "delete") onDelete();
                         }}>
                             <Dropdown.Item id="edit" icon={Edit01}>
                                 <span className="pr-4">Modifier</span>
+                            </Dropdown.Item>
+                            <Dropdown.Item id="objectives" icon={Target04}>
+                                <span className="pr-4">Objectifs</span>
                             </Dropdown.Item>
                             <Dropdown.Item id="delete" icon={Trash01}>
                                 <span className="pr-4">Supprimer</span>
@@ -350,12 +506,15 @@ export default function TeamsPage() {
     const params = useParams<{ id: string }>();
     const seasonId = params.id;
 
+    const { data: season } = useSeason(seasonId);
     const { data: teams, isLoading, error } = useTeams(seasonId);
     const { data: suppliers } = useEngineSuppliers(seasonId);
+    const universeId = season?.universe_id ?? "";
     const importTeams = useImportTeams();
 
     const [editingTeam, setEditingTeam] = useState<TeamWithBudget | null>(null);
     const [deletingTeam, setDeletingTeam] = useState<TeamWithBudget | null>(null);
+    const [objectivesTeam, setObjectivesTeam] = useState<TeamWithBudget | null>(null);
 
     const supplierMap = useMemo(
         () => new Map(suppliers?.map((s) => [s.id, s]) ?? []),
@@ -443,7 +602,7 @@ export default function TeamsPage() {
                             </Button>
                         }
                     />
-                    <CreateTeamDialog seasonId={seasonId} />
+                    <CreateTeamDialog seasonId={seasonId} universeId={universeId} />
                 </div>
             </div>
 
@@ -466,7 +625,7 @@ export default function TeamsPage() {
                                 </EmptyState.Description>
                             </EmptyState.Content>
                             <EmptyState.Footer>
-                                <CreateTeamDialog seasonId={seasonId} />
+                                <CreateTeamDialog seasonId={seasonId} universeId={universeId} />
                             </EmptyState.Footer>
                         </EmptyState>
                     </div>
@@ -475,7 +634,7 @@ export default function TeamsPage() {
                         <TableCard.Header
                             title="Equipes"
                             badge={String(teams.length)}
-                            contentTrailing={<CreateTeamDialog seasonId={seasonId} />}
+                            contentTrailing={<CreateTeamDialog seasonId={seasonId} universeId={universeId} />}
                         />
                         <Table>
                             <Table.Header>
@@ -497,6 +656,7 @@ export default function TeamsPage() {
                                         }
                                         onEdit={() => setEditingTeam(team)}
                                         onDelete={() => setDeletingTeam(team)}
+                                        onObjectives={() => setObjectivesTeam(team)}
                                     />
                                 )}
                             </Table.Body>
@@ -509,6 +669,7 @@ export default function TeamsPage() {
             {editingTeam && (
                 <EditTeamDialog
                     seasonId={seasonId}
+                    universeId={universeId}
                     team={editingTeam as Team}
                     isOpen={!!editingTeam}
                     onOpenChange={(open) => { if (!open) setEditingTeam(null); }}
@@ -522,6 +683,17 @@ export default function TeamsPage() {
                     team={deletingTeam as Team}
                     isOpen={!!deletingTeam}
                     onOpenChange={(open) => { if (!open) setDeletingTeam(null); }}
+                />
+            )}
+
+            {/* Objectives modal */}
+            {objectivesTeam && (
+                <ObjectivesDialog
+                    teamId={objectivesTeam.id!}
+                    teamName={objectivesTeam.name ?? ""}
+                    seasonId={seasonId}
+                    isOpen={!!objectivesTeam}
+                    onOpenChange={(open) => { if (!open) setObjectivesTeam(null); }}
                 />
             )}
         </div>

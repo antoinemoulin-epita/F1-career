@@ -79,6 +79,11 @@ export type ArcType = Enums<"arc_type">;
 export type NewsType = Enums<"news_type">;
 export type TransferType = Enums<"transfer_type">;
 export type ResetType = Enums<"reset_type">;
+export type ObjectiveType = Enums<"objective_type">;
+
+// ─── Sponsor objectives ─────────────────────────────────────────────────────
+
+export type SponsorObjective = Tables<"sponsor_objectives">;
 
 // ─── Form types ──────────────────────────────────────────────────────────────
 

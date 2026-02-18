@@ -6,6 +6,7 @@ import { driverKeys } from "@/hooks/use-drivers";
 import { teamKeys } from "@/hooks/use-teams";
 import { seasonKeys } from "@/hooks/use-seasons";
 import { universeKeys } from "@/hooks/use-universes";
+import { staffKeys } from "@/hooks/use-staff";
 
 const supabase = createClient();
 
@@ -39,6 +40,7 @@ export type ArchiveInput = {
     seasonSummary: string | null;
     driverEvolutions: DriverEvolution[];
     teamBudgetChanges: TeamBudgetChange[];
+    contractDecrements: boolean;
 };
 
 // ─── Archive season mutation ────────────────────────────────────────────────
@@ -103,6 +105,7 @@ export function useArchiveSeason() {
                 if (evo.rookie_reveal != null) {
                     updates.potential_final = evo.rookie_reveal;
                     updates.potential_revealed = true;
+                    updates.is_rookie = false;
                 }
 
                 if (Object.keys(updates).length > 0) {
@@ -135,7 +138,49 @@ export function useArchiveSeason() {
                 if (updateError) throw updateError;
             }
 
-            // 4. Mark season as completed
+            // 4. Decrement contracts and increment years_in_team
+            if (input.contractDecrements) {
+                const { data: allDrivers, error: driversError } = await supabase
+                    .from("drivers")
+                    .select("id, contract_years_remaining, years_in_team")
+                    .eq("season_id", seasonId);
+                if (driversError) throw driversError;
+
+                for (const d of allDrivers ?? []) {
+                    const currentContract = d.contract_years_remaining ?? 0;
+                    const currentYears = d.years_in_team ?? 0;
+                    const { error: updateError } = await supabase
+                        .from("drivers")
+                        .update({
+                            contract_years_remaining: Math.max(0, currentContract - 1),
+                            years_in_team: currentYears + 1,
+                        })
+                        .eq("id", d.id);
+                    if (updateError) throw updateError;
+                }
+            }
+
+            // 4b. Decrement staff contracts
+            if (input.contractDecrements) {
+                const { data: allStaff, error: staffError } = await supabase
+                    .from("staff_members")
+                    .select("id, contract_years_remaining, years_in_team")
+                    .eq("season_id", seasonId);
+                if (staffError) throw staffError;
+
+                for (const s of allStaff ?? []) {
+                    const { error: updateError } = await supabase
+                        .from("staff_members")
+                        .update({
+                            contract_years_remaining: Math.max(0, (s.contract_years_remaining ?? 0) - 1),
+                            years_in_team: (s.years_in_team ?? 0) + 1,
+                        })
+                        .eq("id", s.id);
+                    if (updateError) throw updateError;
+                }
+            }
+
+            // 5. Mark season as completed
             const { error: seasonError } = await supabase
                 .from("seasons")
                 .update({ status: "completed" })
@@ -147,6 +192,7 @@ export function useArchiveSeason() {
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: driverKeys.bySeason(variables.seasonId) });
             queryClient.invalidateQueries({ queryKey: teamKeys.bySeason(variables.seasonId) });
+            queryClient.invalidateQueries({ queryKey: staffKeys.bySeason(variables.seasonId) });
             queryClient.invalidateQueries({ queryKey: seasonKeys.detail(variables.seasonId) });
             queryClient.invalidateQueries({ queryKey: seasonKeys.byUniverse(variables.universeId) });
             queryClient.invalidateQueries({ queryKey: universeKeys.detail(variables.universeId) });

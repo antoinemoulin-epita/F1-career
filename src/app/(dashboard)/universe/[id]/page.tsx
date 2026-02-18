@@ -563,6 +563,22 @@ export default function UniverseDetailPage() {
             {/* Divider */}
             <div className="my-8 border-t border-secondary" />
 
+            {/* Regulations link */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold text-primary">Reglementations</h2>
+                    <p className="mt-0.5 text-sm text-tertiary">
+                        Gerez les changements reglementaires et les resets de voitures.
+                    </p>
+                </div>
+                <Button size="md" color="secondary" href={`/universe/${universe.id}/regulations`}>
+                    Voir les reglementations
+                </Button>
+            </div>
+
+            {/* Divider */}
+            <div className="my-8 border-t border-secondary" />
+
             {/* Backup link */}
             <div className="flex items-center justify-between">
                 <div>

@@ -76,6 +76,11 @@ function ArcCard({
                         >
                             {arcStatusLabels[statusKey] ?? statusKey}
                         </Badge>
+                        {arc.has_branches && (
+                            <Badge size="sm" color="purple" type="pill-color">
+                                [?]
+                            </Badge>
+                        )}
                     </div>
                     {arc.description && (
                         <p className="mt-2 line-clamp-2 text-sm text-tertiary">

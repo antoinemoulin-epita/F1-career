@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -22,7 +22,14 @@ import { Button } from "@/components/base/buttons/button";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Table, TableCard } from "@/components/application/table/table";
+import {
+    Dialog,
+    DialogTrigger,
+    Modal,
+    ModalOverlay,
+} from "@/components/application/modals/modal";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { NewsForm } from "@/components/forms/news-form";
 import { useSeason } from "@/hooks/use-seasons";
 import { useCalendar } from "@/hooks/use-calendar";
 import { useDrivers } from "@/hooks/use-drivers";
@@ -112,7 +119,7 @@ function NavCard({
     href: string;
     icon: FC<{ className?: string }>;
     label: string;
-    count: number;
+    count?: number;
 }) {
     return (
         <Link
@@ -123,7 +130,7 @@ function NavCard({
                 <Icon className="size-5 text-fg-quaternary" />
             </div>
             <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-primary">{count}</p>
+                {count != null && <p className="text-sm font-semibold text-primary">{count}</p>}
                 <p className="text-sm text-tertiary">{label}</p>
             </div>
             <ChevronRight className="size-5 text-fg-quaternary transition duration-100 ease-linear group-hover:text-fg-secondary" />
@@ -630,6 +637,25 @@ export default function SeasonDashboardPage() {
     const leaderDriverPts = driverStandings?.[0]?.points ?? 0;
     const leaderTeamPts = constructorStandings?.[0]?.points ?? 0;
 
+    // ─── News auto-modal ────────────────────────────────────────────────
+    const lastCompletedRound = useMemo(() => {
+        const entries = calendar ?? [];
+        const completed = entries.filter((e) => e.status === "completed");
+        if (completed.length === 0) return null;
+        return Math.max(...completed.map((e) => e.round_number));
+    }, [calendar]);
+
+    const hasNewsForLastRound = useMemo(() => {
+        if (lastCompletedRound == null || !newsData) return true;
+        return newsData.some((n) => n.after_round === lastCompletedRound);
+    }, [lastCompletedRound, newsData]);
+
+    const [newsModalDismissed, setNewsModalDismissed] = useState<Set<number>>(new Set());
+    const showNewsModal =
+        lastCompletedRound != null &&
+        !hasNewsForLastRound &&
+        !newsModalDismissed.has(lastCompletedRound);
+
     if (seasonLoading || calendarLoading) return <PageLoading label="Chargement de la saison..." />;
 
     if (seasonError || !season) {
@@ -723,6 +749,11 @@ export default function SeasonDashboardPage() {
                     label="News"
                     count={newsData?.length ?? 0}
                 />
+                <NavCard
+                    href={`/season/${seasonId}/staff`}
+                    icon={Users01}
+                    label="Staff"
+                />
             </div>
 
             {/* Pre-season checklist (only in preparation) */}
@@ -771,6 +802,66 @@ export default function SeasonDashboardPage() {
                 <div className="mt-6">
                     <NarrativeArcsSection arcs={narrativeArcs} />
                 </div>
+            )}
+
+            {/* News auto-modal */}
+            {showNewsModal && lastCompletedRound != null && (
+                <DialogTrigger
+                    isOpen={showNewsModal}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setNewsModalDismissed((prev) => {
+                                const next = new Set(prev);
+                                next.add(lastCompletedRound);
+                                return next;
+                            });
+                        }
+                    }}
+                >
+                    <ModalOverlay>
+                        <Modal className="max-w-2xl">
+                            <Dialog>
+                                <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
+                                    <div className="mb-5 flex items-start gap-4">
+                                        <FeaturedIcon
+                                            icon={File06}
+                                            color="brand"
+                                            theme="light"
+                                            size="md"
+                                        />
+                                        <div>
+                                            <h2 className="text-lg font-semibold text-primary">
+                                                News apres le GP {lastCompletedRound}
+                                            </h2>
+                                            <p className="mt-1 text-sm text-tertiary">
+                                                Aucune news pour ce round. Ajoutez-en une maintenant.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <NewsForm
+                                        seasonId={seasonId}
+                                        universeId={season.universe_id}
+                                        defaultAfterRound={lastCompletedRound}
+                                        onSuccess={() => {
+                                            setNewsModalDismissed((prev) => {
+                                                const next = new Set(prev);
+                                                next.add(lastCompletedRound);
+                                                return next;
+                                            });
+                                        }}
+                                        onCancel={() => {
+                                            setNewsModalDismissed((prev) => {
+                                                const next = new Set(prev);
+                                                next.add(lastCompletedRound);
+                                                return next;
+                                            });
+                                        }}
+                                    />
+                                </div>
+                            </Dialog>
+                        </Modal>
+                    </ModalOverlay>
+                </DialogTrigger>
             )}
         </div>
     );

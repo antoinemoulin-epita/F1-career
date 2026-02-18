@@ -59,6 +59,26 @@ export function usePointsSystem(universeId: string) {
     });
 }
 
+/**
+ * Fetch all race wins for a season, joined with calendar to get circuit_id.
+ * Returns { driver_id, team_id, circuit_id }[] for position-1 finishes.
+ */
+export function useRaceResultsBySeason(seasonId: string) {
+    return useQuery({
+        queryKey: ["race-results-season", { seasonId }] as const,
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("race_results")
+                .select("driver_id, finish_position, race:calendar!inner(id, season_id, circuit_id)")
+                .eq("race.season_id", seasonId)
+                .eq("finish_position", 1);
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!seasonId,
+    });
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type DnfInfo = {

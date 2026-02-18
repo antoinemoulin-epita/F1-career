@@ -15,3 +15,6 @@ export { rookiePoolSchema, rookiePoolFormDefaults, type RookiePoolFormValues } f
 export { narrativeArcSchema, narrativeArcFormDefaults, type NarrativeArcFormValues } from "./narrative-arc";
 export { newsSchema, newsFormDefaults, type NewsFormValues } from "./news";
 export { engineSupplierSchema, engineSupplierFormDefaults, type EngineSupplierFormValues } from "./engine-supplier";
+export { regulationSchema, regulationFormDefaults, type RegulationFormValues } from "./regulation";
+export { sponsorObjectiveSchema, sponsorObjectiveFormDefaults, type SponsorObjectiveFormValues } from "./sponsor-objective";
+export { staffSchema, staffFormDefaults, type StaffFormValues } from "./staff";

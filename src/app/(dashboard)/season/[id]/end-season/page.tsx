@@ -9,6 +9,7 @@ import {
     CheckCircle,
     Copy01,
     Download01,
+    File06,
     Trophy01,
     Users01,
     Zap,
@@ -32,6 +33,8 @@ import { useDriverStandings, useConstructorStandings } from "@/hooks/use-standin
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
 import { useSurperformance } from "@/hooks/use-surperformance";
 import { useArchiveSeason, type DriverEvolution, type TeamBudgetChange } from "@/hooks/use-end-season";
+import { useStaff } from "@/hooks/use-staff";
+import { staffRoleLabels } from "@/lib/validators/staff";
 import { useClipboard } from "@/hooks/use-clipboard";
 import {
     generateEndSeasonMarkdown,
@@ -41,18 +44,30 @@ import {
 } from "@/lib/export/end-season-template";
 import type { StandingRow } from "@/lib/export/pre-race-template";
 import { cx } from "@/utils/cx";
+import { calculateRookieReveal } from "@/lib/calculations/rookie-reveal";
+import { evaluateObjective, type EvaluationResult } from "@/lib/calculations/sponsor-evaluation";
+import { useSeasonSponsorObjectives, useUpdateSponsorObjective } from "@/hooks/use-sponsor-objectives";
+import { useRaceResultsBySeason } from "@/hooks/use-race-results";
+import { objectiveTypeLabels, objectiveTypeBadgeColor } from "@/lib/constants/arc-labels";
+import type { SponsorObjective, StaffMember } from "@/types";
 import type { FC } from "react";
+
+type StaffWithPerson = StaffMember & {
+    person: { id: string; first_name: string; last_name: string; nationality: string | null } | null;
+};
 
 // ─── Steps config ───────────────────────────────────────────────────────────
 
-type StepId = "champions" | "surperformance" | "evolutions" | "rookies" | "budgets" | "validation";
+type StepId = "champions" | "surperformance" | "evolutions" | "contracts" | "rookies" | "budgets" | "objectives" | "validation";
 
 const STEPS: { id: StepId; label: string; icon: FC }[] = [
     { id: "champions", label: "Champions", icon: Trophy01 },
     { id: "surperformance", label: "Surperformances", icon: Zap },
     { id: "evolutions", label: "Evolutions", icon: Star01 },
+    { id: "contracts", label: "Contrats", icon: File06 },
     { id: "rookies", label: "Rookies", icon: Target04 },
     { id: "budgets", label: "Budgets", icon: CurrencyDollar },
+    { id: "objectives", label: "Objectifs", icon: Target04 },
     { id: "validation", label: "Validation", icon: FileCheck02 },
 ];
 
@@ -110,6 +125,10 @@ export default function EndSeasonPage() {
     const { data: constructorStandingsRaw, isLoading: csLoading } = useConstructorStandings(seasonId);
     const { data: surperfData, isLoading: surperfLoading } = useSurperformance(seasonId);
     const { data: narrativeArcsRaw } = useNarrativeArcs(season?.universe_id ?? "");
+    const { data: sponsorObjectivesRaw } = useSeasonSponsorObjectives(seasonId);
+    const { data: seasonWinsRaw } = useRaceResultsBySeason(seasonId);
+    const { data: staffRaw } = useStaff(seasonId);
+    const updateObjective = useUpdateSponsorObjective();
     const archiveSeason = useArchiveSeason();
     const { copied, copy } = useClipboard();
 
@@ -125,6 +144,7 @@ export default function EndSeasonPage() {
     const [progressionEnabled, setProgressionEnabled] = useState<Map<string, boolean>>(new Map());
     const [championBonusEnabled, setChampionBonusEnabled] = useState(true);
     const [rookieReveals, setRookieReveals] = useState<Map<string, number | null>>(new Map());
+    const [contractDecrements, setContractDecrements] = useState(true);
     const [budgetOverrides, setBudgetOverrides] = useState<Map<string, boolean>>(new Map());
     const [seasonSummary, setSeasonSummary] = useState("");
     const [isArchived, setIsArchived] = useState(false);
@@ -145,6 +165,13 @@ export default function EndSeasonPage() {
     // ─── Driver / team arrays ────────────────────────────────────────────
     const drivers = driversRaw ?? [];
     const teams = teamsRaw ?? [];
+
+    // Champion bonus cap: max 3 titles
+    const championDriverData = championDriver
+        ? drivers.find((d) => d.id === championDriver.driver_id)
+        : null;
+    const championWorldTitles = championDriverData?.world_titles ?? 0;
+    const championBonusCapped = championWorldTitles >= 3;
 
     // ─── Team name map ──────────────────────────────────────────────────
     const teamNameMap = useMemo(() => {
@@ -171,6 +198,27 @@ export default function EndSeasonPage() {
                     d.note < d.potential_final,
             ),
         [drivers],
+    );
+
+    // Contract status
+    const lastYearContractDrivers = useMemo(
+        () => drivers.filter((d) => d.contract_years_remaining === 1),
+        [drivers],
+    );
+    const freeAgentDrivers = useMemo(
+        () => drivers.filter((d) => d.contract_years_remaining === 0 || d.contract_years_remaining == null),
+        [drivers],
+    );
+
+    // Staff contract status
+    const staffMembers = (staffRaw ?? []) as StaffWithPerson[];
+    const lastYearContractStaff = useMemo(
+        () => staffMembers.filter((s) => s.contract_years_remaining === 1),
+        [staffMembers],
+    );
+    const freeAgentStaff = useMemo(
+        () => staffMembers.filter((s) => s.contract_years_remaining === 0),
+        [staffMembers],
     );
 
     // Rookies with unrevealed potential
@@ -202,13 +250,9 @@ export default function EndSeasonPage() {
             rookies.forEach((d) => {
                 if (d.id) {
                     const surp = surperfData?.drivers.find((s) => s.driver_id === d.id);
-                    if (surp && surp.effect === "positive" && d.potential_max != null) {
-                        map.set(d.id, d.potential_max);
-                    } else if (surp && surp.effect === "negative" && d.potential_min != null) {
-                        map.set(d.id, d.potential_min);
-                    } else {
-                        map.set(d.id, null);
-                    }
+                    const delta = surp?.delta ?? 0;
+                    const reveal = calculateRookieReveal(delta, d.potential_min ?? 1, d.potential_max ?? 10);
+                    map.set(d.id, reveal.autoValue);
                 }
             });
             setRookieReveals(map);
@@ -239,7 +283,7 @@ export default function EndSeasonPage() {
                     potential_change: surp?.potential_change ?? 0,
                     decline: declineEnabled.get(id) ? -1 : 0,
                     progression: progressionEnabled.get(id) ? 1 : 0,
-                    champion_bonus: isChampion && championBonusEnabled ? 1 : 0,
+                    champion_bonus: isChampion && championBonusEnabled && !championBonusCapped ? 1 : 0,
                     rookie_reveal: rookieReveals.get(id) ?? null,
                 };
             })
@@ -251,7 +295,7 @@ export default function EndSeasonPage() {
                     e.champion_bonus !== 0 ||
                     e.rookie_reveal != null,
             );
-    }, [drivers, surperfData, championDriver, declineEnabled, progressionEnabled, championBonusEnabled, rookieReveals]);
+    }, [drivers, surperfData, championDriver, declineEnabled, progressionEnabled, championBonusEnabled, championBonusCapped, rookieReveals]);
 
     const teamBudgetChanges = useMemo<TeamBudgetChange[]>(() => {
         if (!surperfData) return [];
@@ -262,6 +306,50 @@ export default function EndSeasonPage() {
                 surperformance_delta: t.budget_change,
             }));
     }, [surperfData, budgetOverrides]);
+
+    // ─── Sponsor objectives evaluation ──────────────────────────────────
+    const sponsorObjectives = sponsorObjectivesRaw ?? [];
+
+    const teamWinCircuits = useMemo(() => {
+        const map = new Map<string, Set<string>>();
+        if (!seasonWinsRaw || !drivers) return map;
+        const driverTeamLookup = new Map(drivers.map((d) => [d.id, d.team_id]));
+        for (const win of seasonWinsRaw) {
+            const teamId = driverTeamLookup.get(win.driver_id);
+            const race = win.race as unknown as { circuit_id: string } | null;
+            const circuitId = race?.circuit_id;
+            if (teamId && circuitId) {
+                if (!map.has(teamId)) map.set(teamId, new Set());
+                map.get(teamId)!.add(circuitId);
+            }
+        }
+        return map;
+    }, [seasonWinsRaw, drivers]);
+
+    const objectiveEvaluations = useMemo<Map<string, EvaluationResult>>(() => {
+        const results = new Map<string, EvaluationResult>();
+        if (!driverStandingsRaw || !constructorStandingsRaw) return results;
+        const ctx = {
+            driverStandings: driverStandingsRaw,
+            constructorStandings: constructorStandingsRaw,
+            teamWinCircuits,
+        };
+        for (const obj of sponsorObjectives) {
+            results.set(obj.id, evaluateObjective(obj, ctx));
+        }
+        return results;
+    }, [sponsorObjectives, driverStandingsRaw, constructorStandingsRaw, teamWinCircuits]);
+
+    // Group objectives by team
+    const objectivesByTeam = useMemo(() => {
+        const map = new Map<string, SponsorObjective[]>();
+        for (const obj of sponsorObjectives) {
+            const list = map.get(obj.team_id) ?? [];
+            list.push(obj);
+            map.set(obj.team_id, list);
+        }
+        return map;
+    }, [sponsorObjectives]);
 
     // ─── Export data ────────────────────────────────────────────────────
     const exportData = useMemo<EndSeasonExportData | null>(() => {
@@ -402,6 +490,7 @@ export default function EndSeasonPage() {
                 seasonSummary: seasonSummary || null,
                 driverEvolutions,
                 teamBudgetChanges,
+                contractDecrements,
             },
             {
                 onSuccess: () => setIsArchived(true),
@@ -685,11 +774,24 @@ export default function EndSeasonPage() {
                         {/* Champion bonus */}
                         {championDriver && (
                             <SectionCard title="Bonus champion" icon={Trophy01} color="success">
-                                <Checkbox
-                                    label={`${championDriver.first_name} ${championDriver.last_name} : +1 potentiel (bonus champion du monde)`}
-                                    isSelected={championBonusEnabled}
-                                    onChange={() => setChampionBonusEnabled((v) => !v)}
-                                />
+                                {championBonusCapped ? (
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            label={`${championDriver.first_name} ${championDriver.last_name} : +1 potentiel (bonus champion du monde)`}
+                                            isSelected={false}
+                                            isDisabled
+                                        />
+                                        <Badge size="sm" color="warning" type="pill-color">
+                                            Bonus max atteint ({championWorldTitles} titres)
+                                        </Badge>
+                                    </div>
+                                ) : (
+                                    <Checkbox
+                                        label={`${championDriver.first_name} ${championDriver.last_name} : +1 potentiel (bonus champion du monde)`}
+                                        isSelected={championBonusEnabled}
+                                        onChange={() => setChampionBonusEnabled((v) => !v)}
+                                    />
+                                )}
                             </SectionCard>
                         )}
 
@@ -747,14 +849,126 @@ export default function EndSeasonPage() {
                     </div>
                 </Tabs.Panel>
 
-                {/* Step 4: Rookies */}
+                {/* Step: Contracts */}
+                <Tabs.Panel id="contracts" className="mt-6">
+                    <div className="space-y-4">
+                        <SectionCard title="Contrats" icon={File06} color="brand">
+                            <Checkbox
+                                label="Decrementer les contrats pilotes ET staff (-1 an) et incrementer les annees en equipe (+1)"
+                                isSelected={contractDecrements}
+                                onChange={() => setContractDecrements((v) => !v)}
+                            />
+                        </SectionCard>
+
+                        {lastYearContractDrivers.length > 0 && (
+                            <SectionCard title="Derniere annee de contrat" icon={AlertCircle} color="warning">
+                                <div className="space-y-2">
+                                    {lastYearContractDrivers.map((d) => (
+                                        <div key={d.id} className="flex items-center justify-between text-sm">
+                                            <span className="text-primary">{d.full_name}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-tertiary">
+                                                    {teamNameMap.get(d.team_id ?? "") ?? "—"}
+                                                </span>
+                                                <Badge size="sm" color="warning" type="pill-color">
+                                                    Dernier an
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </SectionCard>
+                        )}
+
+                        {freeAgentDrivers.length > 0 && (
+                            <SectionCard title="Agents libres" icon={AlertCircle} color="error">
+                                <div className="space-y-2">
+                                    {freeAgentDrivers.map((d) => (
+                                        <div key={d.id} className="flex items-center justify-between text-sm">
+                                            <span className="text-primary">{d.full_name}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-tertiary">
+                                                    {teamNameMap.get(d.team_id ?? "") ?? "—"}
+                                                </span>
+                                                <Badge size="sm" color="error" type="pill-color">
+                                                    Agent libre
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </SectionCard>
+                        )}
+
+                        {lastYearContractStaff.length > 0 && (
+                            <SectionCard title="Staff — Derniere annee de contrat" icon={Users01} color="warning">
+                                <div className="space-y-2">
+                                    {lastYearContractStaff.map((s) => (
+                                        <div key={s.id} className="flex items-center justify-between text-sm">
+                                            <span className="text-primary">
+                                                {s.person
+                                                    ? `${s.person.first_name} ${s.person.last_name}`
+                                                    : "—"}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <Badge size="sm" color="brand" type="pill-color">
+                                                    {staffRoleLabels[s.role] ?? s.role}
+                                                </Badge>
+                                                <span className="text-xs text-tertiary">
+                                                    {teamNameMap.get(s.team_id) ?? "—"}
+                                                </span>
+                                                <Badge size="sm" color="warning" type="pill-color">
+                                                    Dernier an
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </SectionCard>
+                        )}
+
+                        {freeAgentStaff.length > 0 && (
+                            <SectionCard title="Staff — Agents libres" icon={Users01} color="error">
+                                <div className="space-y-2">
+                                    {freeAgentStaff.map((s) => (
+                                        <div key={s.id} className="flex items-center justify-between text-sm">
+                                            <span className="text-primary">
+                                                {s.person
+                                                    ? `${s.person.first_name} ${s.person.last_name}`
+                                                    : "—"}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <Badge size="sm" color="brand" type="pill-color">
+                                                    {staffRoleLabels[s.role] ?? s.role}
+                                                </Badge>
+                                                <span className="text-xs text-tertiary">
+                                                    {teamNameMap.get(s.team_id) ?? "—"}
+                                                </span>
+                                                <Badge size="sm" color="error" type="pill-color">
+                                                    Agent libre
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </SectionCard>
+                        )}
+                    </div>
+                </Tabs.Panel>
+
+                {/* Step: Rookies */}
                 <Tabs.Panel id="rookies" className="mt-6">
                     <SectionCard title="Revelation potentiel rookies" icon={Target04} color="brand">
                         {rookies.length > 0 ? (
                             <div className="space-y-4">
                                 {rookies.map((d) => {
                                     const surp = surperfData?.drivers.find((s) => s.driver_id === d.id);
+                                    const delta = surp?.delta ?? 0;
+                                    const revealResult = calculateRookieReveal(delta, d.potential_min ?? 1, d.potential_max ?? 10);
                                     const reveal = rookieReveals.get(d.id!);
+                                    const isAutoResolved = revealResult.case !== "draw";
+                                    const badgeColor = revealResult.case === "high" ? "success" : revealResult.case === "low" ? "error" : "warning";
+
                                     return (
                                         <div key={d.id} className="rounded-lg border border-secondary p-4">
                                             <div className="flex items-center justify-between">
@@ -771,13 +985,13 @@ export default function EndSeasonPage() {
                                                         </p>
                                                     )}
                                                 </div>
-                                                {surp?.effect === "positive" && (
-                                                    <Badge size="sm" color="success" type="pill-color">Haut potentiel suggere</Badge>
-                                                )}
-                                                {surp?.effect === "negative" && (
-                                                    <Badge size="sm" color="error" type="pill-color">Bas potentiel suggere</Badge>
-                                                )}
+                                                <Badge size="sm" color={badgeColor} type="pill-color">
+                                                    {revealResult.label}
+                                                </Badge>
                                             </div>
+                                            <p className="mt-2 text-xs text-tertiary italic">
+                                                {revealResult.explanation}
+                                            </p>
                                             <div className="mt-3 flex items-center gap-2">
                                                 <span className="text-sm text-secondary">Potentiel revele :</span>
                                                 <div className="flex gap-1">
@@ -788,6 +1002,7 @@ export default function EndSeasonPage() {
                                                         <button
                                                             key={val}
                                                             type="button"
+                                                            disabled={isAutoResolved}
                                                             onClick={() =>
                                                                 setRookieReveals((prev) => {
                                                                     const next = new Map(prev);
@@ -799,7 +1014,10 @@ export default function EndSeasonPage() {
                                                                 "flex size-8 items-center justify-center rounded-lg border text-sm font-medium transition duration-100 ease-linear",
                                                                 reveal === val
                                                                     ? "border-brand bg-brand-primary text-brand-secondary"
-                                                                    : "border-secondary bg-primary text-secondary hover:bg-primary_hover",
+                                                                    : "border-secondary bg-primary text-secondary",
+                                                                isAutoResolved
+                                                                    ? "cursor-not-allowed opacity-50"
+                                                                    : "hover:bg-primary_hover",
                                                             )}
                                                         >
                                                             {val}
@@ -847,7 +1065,108 @@ export default function EndSeasonPage() {
                     </SectionCard>
                 </Tabs.Panel>
 
-                {/* Step 6: Validation */}
+                {/* Step: Objectives */}
+                <Tabs.Panel id="objectives" className="mt-6">
+                    {sponsorObjectives.length > 0 ? (
+                        <div className="space-y-4">
+                            {[...objectivesByTeam.entries()].map(([teamId, objs]) => (
+                                <SectionCard
+                                    key={teamId}
+                                    title={teamNameMap.get(teamId) ?? teamId}
+                                    icon={Target04}
+                                    color="brand"
+                                >
+                                    <div className="space-y-3">
+                                        {objs.map((obj) => {
+                                            const evaluation = objectiveEvaluations.get(obj.id);
+                                            const isMet = obj.objective_type === "custom"
+                                                ? obj.is_met ?? false
+                                                : evaluation?.is_met ?? false;
+
+                                            return (
+                                                <div
+                                                    key={obj.id}
+                                                    className="flex items-center justify-between rounded-lg border border-secondary p-3"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge
+                                                                size="sm"
+                                                                color={objectiveTypeBadgeColor[obj.objective_type] ?? "gray"}
+                                                                type="pill-color"
+                                                            >
+                                                                {objectiveTypeLabels[obj.objective_type] ?? obj.objective_type}
+                                                            </Badge>
+                                                            {obj.target_value != null && (
+                                                                <span className="text-xs text-tertiary">
+                                                                    Cible : {obj.target_value}
+                                                                </span>
+                                                            )}
+                                                            {evaluation && evaluation.label !== "Manuel" && (
+                                                                <span className="text-xs text-tertiary">
+                                                                    Resultat : {evaluation.label}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {obj.description && (
+                                                            <p className="mt-1 text-xs text-tertiary">{obj.description}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {obj.objective_type === "custom" ? (
+                                                            <div className="flex gap-1">
+                                                                <Button
+                                                                    size="sm"
+                                                                    color={isMet ? "primary" : "secondary"}
+                                                                    onClick={() =>
+                                                                        updateObjective.mutate({
+                                                                            id: obj.id,
+                                                                            seasonId,
+                                                                            updates: { is_met: true },
+                                                                        })
+                                                                    }
+                                                                >
+                                                                    Atteint
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    color={!isMet ? "primary-destructive" : "secondary"}
+                                                                    onClick={() =>
+                                                                        updateObjective.mutate({
+                                                                            id: obj.id,
+                                                                            seasonId,
+                                                                            updates: { is_met: false },
+                                                                        })
+                                                                    }
+                                                                >
+                                                                    Rate
+                                                                </Button>
+                                                            </div>
+                                                        ) : (
+                                                            <Badge
+                                                                size="sm"
+                                                                color={isMet ? "success" : "error"}
+                                                                type="pill-color"
+                                                            >
+                                                                {isMet ? "Atteint" : "Rate"}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </SectionCard>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex min-h-40 items-center justify-center">
+                            <p className="text-sm text-tertiary">Aucun objectif sponsor defini pour cette saison.</p>
+                        </div>
+                    )}
+                </Tabs.Panel>
+
+                {/* Step: Validation */}
                 <Tabs.Panel id="validation" className="mt-6">
                     {!isArchived ? (
                         <div className="space-y-4">
@@ -910,7 +1229,34 @@ export default function EndSeasonPage() {
                                         </div>
                                     )}
 
-                                    {driverEvolutions.length === 0 && teamBudgetChanges.length === 0 && (
+                                    {/* Staff contracts */}
+                                    {contractDecrements && (lastYearContractStaff.length > 0 || freeAgentStaff.length > 0) && (
+                                        <div>
+                                            <p className="text-xs font-medium text-tertiary uppercase">
+                                                Contrats staff
+                                            </p>
+                                            <div className="mt-1 space-y-1">
+                                                {lastYearContractStaff.map((s) => (
+                                                    <div key={s.id} className="flex items-center justify-between text-sm">
+                                                        <span className="text-primary">
+                                                            {s.person ? `${s.person.first_name} ${s.person.last_name}` : "—"}
+                                                        </span>
+                                                        <Badge size="sm" color="warning" type="pill-color">Dernier an</Badge>
+                                                    </div>
+                                                ))}
+                                                {freeAgentStaff.map((s) => (
+                                                    <div key={s.id} className="flex items-center justify-between text-sm">
+                                                        <span className="text-primary">
+                                                            {s.person ? `${s.person.first_name} ${s.person.last_name}` : "—"}
+                                                        </span>
+                                                        <Badge size="sm" color="error" type="pill-color">Agent libre</Badge>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {driverEvolutions.length === 0 && teamBudgetChanges.length === 0 && lastYearContractStaff.length === 0 && freeAgentStaff.length === 0 && (
                                         <p className="text-sm text-tertiary">Aucun changement a appliquer</p>
                                     )}
                                 </div>

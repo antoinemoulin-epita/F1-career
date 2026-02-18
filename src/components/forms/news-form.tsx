@@ -86,11 +86,12 @@ interface NewsFormProps {
     seasonId: string;
     universeId: string;
     news?: News;
+    defaultAfterRound?: number;
     onSuccess: () => void;
     onCancel: () => void;
 }
 
-export function NewsForm({ seasonId, universeId, news, onSuccess, onCancel }: NewsFormProps) {
+export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSuccess, onCancel }: NewsFormProps) {
     const createNews = useCreateNews();
     const updateNews = useUpdateNews();
     const { data: arcs } = useNarrativeArcs(universeId);
@@ -108,7 +109,7 @@ export function NewsForm({ seasonId, universeId, news, onSuccess, onCancel }: Ne
                   after_round: news.after_round ?? null,
                   arc_id: news.arc_id ?? null,
               }
-            : newsFormDefaults,
+            : { ...newsFormDefaults, ...(defaultAfterRound != null ? { after_round: defaultAfterRound } : {}) },
     });
 
     const isPending = createNews.isPending || updateNews.isPending;
