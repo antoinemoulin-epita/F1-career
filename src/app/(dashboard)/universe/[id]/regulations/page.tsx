@@ -7,6 +7,7 @@ import {
     Edit05,
     Plus,
     Trash02,
+    Upload01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
@@ -22,9 +23,13 @@ import {
 } from "@/components/application/modals/modal";
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { RegulationForm } from "@/components/forms/regulation-form";
 import { useUniverse } from "@/hooks/use-universes";
 import { useRegulations, useDeleteRegulation } from "@/hooks/use-regulations";
+import { useImportRegulations } from "@/hooks/use-import-regulations";
+import { regulationImportSchema, type RegulationImportValues } from "@/lib/validators/regulation-import";
+import type { RegulationFormValues } from "@/lib/validators/regulation";
 import { calculateResetResult } from "@/lib/calculations/reset";
 import type { Regulation, ResetType } from "@/types";
 
@@ -244,6 +249,34 @@ function ResetGuide() {
     );
 }
 
+// ─── Import config ──────────────────────────────────────────────────────────
+
+const IMPORT_EXAMPLE = JSON.stringify(
+    [
+        {
+            name: "Effet de sol 2026",
+            description: "Nouveau reglement aerodynamique majeur",
+            effective_year: 2026,
+            reset_type: "critical",
+            affects_aero: true,
+            affects_chassis: true,
+            affects_motor: false,
+        },
+    ],
+    null,
+    2,
+);
+
+const IMPORT_FIELDS = [
+    { name: "name", required: true, description: "Nom de la reglementation" },
+    { name: "description", required: false, description: "Description detaillee" },
+    { name: "effective_year", required: true, description: "Annee d'entree en vigueur (1950-2100)" },
+    { name: "reset_type", required: true, description: "Type de reset : critical, important, partial" },
+    { name: "affects_aero", required: false, description: "Affecte l'aerodynamique (true/false)" },
+    { name: "affects_chassis", required: false, description: "Affecte le chassis (true/false)" },
+    { name: "affects_motor", required: false, description: "Affecte le moteur (true/false)" },
+];
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function RegulationsPage() {
@@ -252,6 +285,7 @@ export default function RegulationsPage() {
 
     const { data: universe, isLoading: universeLoading, error: universeError } = useUniverse(universeId);
     const { data: regulations, isLoading: regLoading, error: regError } = useRegulations(universeId);
+    const importRegulations = useImportRegulations();
 
     const [editingReg, setEditingReg] = useState<Regulation | null>(null);
     const [deletingReg, setDeletingReg] = useState<Regulation | null>(null);
@@ -286,7 +320,25 @@ export default function RegulationsPage() {
                         {total} reglementation{total !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <CreateRegulationDialog universeId={universeId} />
+                <div className="flex items-center gap-3">
+                    <ImportJsonDialog<RegulationImportValues, RegulationFormValues>
+                        title="Importer des reglementations"
+                        description="Importez depuis un fichier JSON."
+                        exampleData={IMPORT_EXAMPLE}
+                        fields={IMPORT_FIELDS}
+                        schema={regulationImportSchema}
+                        onImport={(items) =>
+                            importRegulations.mutate({ universeId, rows: items })
+                        }
+                        isPending={importRegulations.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                    <CreateRegulationDialog universeId={universeId} />
+                </div>
             </div>
 
             {/* Reset guide */}
