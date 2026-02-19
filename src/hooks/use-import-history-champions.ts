@@ -27,7 +27,7 @@ export function useImportHistoryChampions() {
                 champion_driver_points: row.driver_points ?? null,
                 champion_team_name: row.team_name?.trim() || null,
                 champion_team_points: row.team_points ?? null,
-                summary: row.summary?.trim() || null,
+                season_summary: row.summary?.trim() || null,
             }));
 
             const { data, error } = await supabase

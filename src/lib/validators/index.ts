@@ -18,3 +18,4 @@ export { engineSupplierSchema, engineSupplierFormDefaults, type EngineSupplierFo
 export { regulationSchema, regulationFormDefaults, type RegulationFormValues } from "./regulation";
 export { sponsorObjectiveSchema, sponsorObjectiveFormDefaults, type SponsorObjectiveFormValues } from "./sponsor-objective";
 export { staffSchema, staffFormDefaults, type StaffFormValues } from "./staff";
+export { historyChampionSchema, historyChampionFormDefaults, type HistoryChampionFormValues } from "./history-champion";
