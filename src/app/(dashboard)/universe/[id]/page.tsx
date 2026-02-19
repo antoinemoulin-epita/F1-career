@@ -13,6 +13,7 @@ import {
     HardDrive,
     Plus,
     Trash02,
+    Upload01,
 } from "@untitledui/icons";
 import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
@@ -28,12 +29,16 @@ import {
     ModalOverlay,
 } from "@/components/application/modals/modal";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import {
     useUniverse,
     useUpdateUniverse,
     useDeleteUniverse,
 } from "@/hooks/use-universes";
 import { useSeasons, useCreateSeason } from "@/hooks/use-seasons";
+import { useImportHistoryChampions } from "@/hooks/use-import-history-champions";
+import { historyChampionImportSchema } from "@/lib/validators/history-champion-import";
+import type { HistoryChampionImportValues } from "@/lib/validators/history-champion-import";
 import { createUniverseSchema } from "@/lib/validators";
 import { cx } from "@/utils/cx";
 import type { Season, SeasonStatus, Universe } from "@/types";
@@ -456,6 +461,34 @@ function DeleteUniverseDialog({ universe }: { universe: Universe }) {
     );
 }
 
+// ─── Champions import config ─────────────────────────────────────────────────
+
+const CHAMPIONS_IMPORT_EXAMPLE = JSON.stringify(
+    [
+        {
+            year: 2023,
+            driver_name: "Max Verstappen",
+            driver_team: "Red Bull",
+            driver_points: 575,
+            team_name: "Red Bull",
+            team_points: 860,
+            summary: "Domination totale de Verstappen",
+        },
+    ],
+    null,
+    2,
+);
+
+const CHAMPIONS_IMPORT_FIELDS = [
+    { name: "year", required: true, description: "Annee de la saison (1950-2100)" },
+    { name: "driver_name", required: true, description: "Nom du champion pilote" },
+    { name: "driver_team", required: false, description: "Ecurie du champion pilote" },
+    { name: "driver_points", required: false, description: "Points du champion pilote" },
+    { name: "team_name", required: false, description: "Nom du champion constructeur" },
+    { name: "team_points", required: false, description: "Points du champion constructeur" },
+    { name: "summary", required: false, description: "Resume de la saison" },
+];
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function UniverseDetailPage() {
@@ -466,6 +499,7 @@ export default function UniverseDetailPage() {
         error: universeError,
     } = useUniverse(params.id);
     const { data: seasons, isLoading: seasonsLoading } = useSeasons(params.id);
+    const importChampions = useImportHistoryChampions();
 
     const isLoading = universeLoading || seasonsLoading;
 
@@ -590,6 +624,35 @@ export default function UniverseDetailPage() {
                 <Button size="md" color="secondary" href={`/universe/${universe.id}/backup`}>
                     Gerer
                 </Button>
+            </div>
+
+            {/* Divider */}
+            <div className="my-8 border-t border-secondary" />
+
+            {/* Palmares import */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold text-primary">Palmares</h2>
+                    <p className="mt-0.5 text-sm text-tertiary">
+                        Importez l'historique des champions du monde avant le debut de carriere.
+                    </p>
+                </div>
+                <ImportJsonDialog<HistoryChampionImportValues>
+                    title="Importer le palmares"
+                    description="Importez l'historique des champions depuis un fichier JSON."
+                    exampleData={CHAMPIONS_IMPORT_EXAMPLE}
+                    fields={CHAMPIONS_IMPORT_FIELDS}
+                    schema={historyChampionImportSchema}
+                    onImport={(items) =>
+                        importChampions.mutate({ universeId: universe.id, rows: items })
+                    }
+                    isPending={importChampions.isPending}
+                    trigger={
+                        <Button size="md" color="secondary" iconLeading={Upload01}>
+                            Importer
+                        </Button>
+                    }
+                />
             </div>
 
             {/* Divider */}
