@@ -1190,6 +1190,7 @@ export type Database = {
           id: string
           last_name: string
           nationality: string | null
+          note: number | null
           potential_max: number
           potential_min: number
           universe_id: string
@@ -1205,6 +1206,7 @@ export type Database = {
           id?: string
           last_name: string
           nationality?: string | null
+          note?: number | null
           potential_max: number
           potential_min: number
           universe_id: string
@@ -1220,6 +1222,7 @@ export type Database = {
           id?: string
           last_name?: string
           nationality?: string | null
+          note?: number | null
           potential_max?: number
           potential_min?: number
           universe_id?: string

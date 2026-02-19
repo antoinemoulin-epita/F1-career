@@ -91,3 +91,20 @@ export function useDeleteEngineSupplier() {
         },
     });
 }
+
+export function useDeleteEngineSuppliers() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ ids }: { ids: string[]; seasonId: string }) => {
+            const { error } = await supabase
+                .from("engine_suppliers")
+                .delete()
+                .in("id", ids);
+            if (error) throw error;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: engineSupplierKeys.bySeason(variables.seasonId) });
+        },
+    });
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import { useParams } from "next/navigation";
 import {
     Car01,
@@ -22,13 +23,16 @@ import {
     ModalOverlay,
 } from "@/components/application/modals/modal";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { getSelectedCount } from "@/utils/selection";
 import { CarForm } from "@/components/forms/car-form";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { useCars } from "@/hooks/use-cars";
 import { useImportCars } from "@/hooks/use-import-cars";
 import { useTeams } from "@/hooks/use-teams";
 import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
+import { useTableSort } from "@/hooks/use-table-sort";
 import { carImportSchema, type CarImportValues } from "@/lib/validators/car-import";
 import type { CarFormValues } from "@/lib/validators";
 import type { Car, CarWithStats, TeamWithBudget, EngineSupplier } from "@/types";
@@ -308,6 +312,8 @@ export default function CarsPage() {
     const importCars = useImportCars();
 
     const [editingCar, setEditingCar] = useState<CarWithStats | null>(null);
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, cars?.length ?? 0);
 
     const teamMap = useMemo(
         () => new Map(teams?.map((t) => [t.id, t]) ?? []),
@@ -352,11 +358,23 @@ export default function CarsPage() {
         [teamsWithoutCar],
     );
 
-    // Position map (cars already sorted by total desc)
-    const positionMap = useMemo(
-        () => new Map(cars?.map((c, i) => [c.id, i + 1]) ?? []),
-        [cars],
+    const carColumns = useMemo(
+        () => ({
+            equipe: (c: CarWithStats) =>
+                c.team_id ? teamMap.get(c.team_id)?.name ?? "" : "",
+            moteur: (c: CarWithStats) => c.motor,
+            aero: (c: CarWithStats) => c.aero,
+            chassis: (c: CarWithStats) => c.chassis,
+            total: (c: CarWithStats) => c.total,
+            vitesse: (c: CarWithStats) => c.speed,
+            grip: (c: CarWithStats) => c.grip,
+            accel: (c: CarWithStats) => c.acceleration,
+        }),
+        [teamMap],
     );
+
+    const { sortDescriptor, onSortChange, sortedItems: sortedCars } =
+        useTableSort(cars ?? [], carColumns);
 
     if (isLoading) {
         return <PageLoading label="Chargement des voitures..." />;
@@ -444,40 +462,55 @@ export default function CarsPage() {
                     </div>
                 ) : (
                     <TableCard.Root>
-                        <TableCard.Header
-                            title="Voitures"
-                            badge={String(cars.length)}
-                            contentTrailing={
-                                <CreateCarDialog
-                                    seasonId={seasonId}
-                                    teamsWithoutCar={teamsWithoutCar}
-                                    supplierMap={supplierMap}
-                                />
-                            }
-                        />
-                        <Table>
+                        {selectedCount > 0 ? (
+                            <TableSelectionBar
+                                count={selectedCount}
+                                onClearSelection={() => setSelectedKeys(new Set())}
+                            />
+                        ) : (
+                            <TableCard.Header
+                                title="Voitures"
+                                badge={String(cars.length)}
+                                contentTrailing={
+                                    <CreateCarDialog
+                                        seasonId={seasonId}
+                                        teamsWithoutCar={teamsWithoutCar}
+                                        supplierMap={supplierMap}
+                                    />
+                                }
+                            />
+                        )}
+                        <Table
+                            sortDescriptor={sortDescriptor}
+                            onSortChange={onSortChange}
+                            selectionMode="multiple"
+                            selectionBehavior="toggle"
+                            selectedKeys={selectedKeys}
+                            onSelectionChange={setSelectedKeys}
+                        >
                             <Table.Header>
                                 <Table.Head label="#" />
-                                <Table.Head label="Equipe" isRowHeader />
-                                <Table.Head label="Moteur" />
-                                <Table.Head label="Aero" />
-                                <Table.Head label="Chassis" />
-                                <Table.Head label="Total" />
-                                <Table.Head label="Vitesse" />
-                                <Table.Head label="Grip" />
-                                <Table.Head label="Accel" />
+                                <Table.Head id="equipe" label="Equipe" isRowHeader allowsSorting />
+                                <Table.Head id="moteur" label="Moteur" allowsSorting />
+                                <Table.Head id="aero" label="Aero" allowsSorting />
+                                <Table.Head id="chassis" label="Chassis" allowsSorting />
+                                <Table.Head id="total" label="Total" allowsSorting />
+                                <Table.Head id="vitesse" label="Vitesse" allowsSorting />
+                                <Table.Head id="grip" label="Grip" allowsSorting />
+                                <Table.Head id="accel" label="Accel" allowsSorting />
                                 <Table.Head label="" />
                             </Table.Header>
-                            <Table.Body items={cars}>
+                            <Table.Body items={sortedCars}>
                                 {(car) => {
                                     const team = car.team_id
                                         ? teamMap.get(car.team_id)
                                         : undefined;
+                                    const position = sortedCars.indexOf(car) + 1;
                                     return (
                                         <CarRow
                                             key={car.id}
                                             car={car}
-                                            position={positionMap.get(car.id!) ?? 0}
+                                            position={position}
                                             teamName={team?.name ?? null}
                                             teamColor={team?.color_primary ?? null}
                                             onEdit={() => setEditingCar(car)}

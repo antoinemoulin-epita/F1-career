@@ -35,6 +35,7 @@ function normalizeForm(form: RookiePoolFormValues) {
         last_name: form.last_name.trim(),
         nationality: form.nationality?.trim() || null,
         birth_year: form.birth_year ?? null,
+        note: form.note ?? null,
         potential_min: form.potential_min,
         potential_max: form.potential_max,
         available_from_year: form.available_from_year ?? null,
@@ -97,6 +98,23 @@ export function useDeleteRookie() {
     });
 }
 
+export function useDeleteRookies() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ ids }: { ids: string[]; universeId: string }) => {
+            const { error } = await supabase
+                .from("rookie_pool")
+                .delete()
+                .in("id", ids);
+            if (error) throw error;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: rookiePoolKeys.byUniverse(variables.universeId) });
+        },
+    });
+}
+
 export function useDraftRookie() {
     const queryClient = useQueryClient();
 
@@ -108,6 +126,7 @@ export function useDraftRookie() {
             teamName,
             universeId,
             rookie,
+            currentYear,
         }: {
             rookieId: string;
             seasonId: string;
@@ -115,7 +134,16 @@ export function useDraftRookie() {
             teamName: string;
             universeId: string;
             rookie: RookiePool;
+            currentYear: number | null;
         }) => {
+            // Calculate note: base note minus penalty for early arrival
+            const baseNote = rookie.note ?? 1;
+            let penalty = 0;
+            if (currentYear && rookie.available_from_year && currentYear < rookie.available_from_year) {
+                penalty = rookie.available_from_year - currentYear;
+            }
+            const driverNote = Math.max(1, baseNote - penalty);
+
             // 1. Create a driver in the target season
             const { error: driverError } = await supabase
                 .from("drivers")
@@ -126,7 +154,7 @@ export function useDraftRookie() {
                     nationality: rookie.nationality,
                     birth_year: rookie.birth_year,
                     is_rookie: true,
-                    note: 1,
+                    note: driverNote,
                     potential_min: rookie.potential_min,
                     potential_max: rookie.potential_max,
                     team_id: teamId,

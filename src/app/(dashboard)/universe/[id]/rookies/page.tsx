@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
@@ -11,7 +12,7 @@ import {
     User01,
     UserPlus01,
 } from "@untitledui/icons";
-import { BadgeWithDot } from "@/components/base/badges/badges";
+import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { Select } from "@/components/base/select/select";
@@ -25,6 +26,8 @@ import {
     ModalOverlay,
 } from "@/components/application/modals/modal";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
+import { BulkDeleteDialog } from "@/components/application/table/bulk-delete-dialog";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
@@ -33,12 +36,59 @@ import { useImportRookies } from "@/hooks/use-import-rookies";
 import {
     useRookiePool,
     useDeleteRookie,
+    useDeleteRookies,
     useDraftRookie,
 } from "@/hooks/use-rookie-pool";
+import { getSelectedIds, getSelectedCount } from "@/utils/selection";
 import { useSeasons } from "@/hooks/use-seasons";
 import { useTeams } from "@/hooks/use-teams";
+import { useUniverse } from "@/hooks/use-universes";
+import { useTableSort } from "@/hooks/use-table-sort";
 import { rookiePoolSchema } from "@/lib/validators";
 import type { RookiePool } from "@/types";
+
+// ─── Availability logic ─────────────────────────────────────────────────────
+
+type RookieAvailability = {
+    status: "unavailable" | "early" | "optimal";
+    label: string;
+    color: "gray" | "warning" | "success";
+    penalty: number;
+};
+
+function getRookieAvailability(
+    rookie: RookiePool,
+    currentYear: number | null,
+): RookieAvailability {
+    if (!currentYear || !rookie.available_from_year) {
+        return { status: "optimal", label: "Disponible", color: "success", penalty: 0 };
+    }
+
+    // Earliest possible = available_from_year - potential_max + 1
+    // (needs at least note=1, each year early costs -1)
+    const earliestYear = rookie.available_from_year - rookie.potential_max + 1;
+
+    if (currentYear < earliestYear) {
+        return {
+            status: "unavailable",
+            label: "Non disponible",
+            color: "gray",
+            penalty: 0,
+        };
+    }
+
+    if (currentYear < rookie.available_from_year) {
+        const yearsEarly = rookie.available_from_year - currentYear;
+        return {
+            status: "early",
+            label: `Peut-etre dispo (−${yearsEarly})`,
+            color: "warning",
+            penalty: yearsEarly,
+        };
+    }
+
+    return { status: "optimal", label: "Optimal", color: "success", penalty: 0 };
+}
 
 // ─── CreateRookieDialog ─────────────────────────────────────────────────────
 
@@ -208,11 +258,13 @@ function DeleteRookieDialog({
 function DraftRookieDialog({
     universeId,
     rookie,
+    currentYear,
     isOpen,
     onOpenChange,
 }: {
     universeId: string;
     rookie: RookiePool;
+    currentYear: number | null;
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
@@ -252,6 +304,7 @@ function DraftRookieDialog({
                 teamName: selectedTeam.name!,
                 universeId,
                 rookie,
+                currentYear,
             },
             {
                 onSuccess: () => {
@@ -348,15 +401,19 @@ function DraftRookieDialog({
 
 function RookieRow({
     rookie,
+    currentYear,
     onEdit,
     onDelete,
     onDraft,
 }: {
     rookie: RookiePool;
+    currentYear: number | null;
     onEdit: () => void;
     onDelete: () => void;
     onDraft: () => void;
 }) {
+    const availability = getRookieAvailability(rookie, currentYear);
+
     return (
         <Table.Row id={rookie.id}>
             <Table.Cell>
@@ -367,6 +424,11 @@ function RookieRow({
             <Table.Cell>
                 <span className="text-sm text-tertiary">
                     {rookie.nationality ?? "—"}
+                </span>
+            </Table.Cell>
+            <Table.Cell>
+                <span className="text-sm text-tertiary">
+                    {rookie.note ?? "—"}
                 </span>
             </Table.Cell>
             <Table.Cell>
@@ -385,9 +447,9 @@ function RookieRow({
                         Recrute ({rookie.drafted_team_name})
                     </BadgeWithDot>
                 ) : (
-                    <BadgeWithDot size="sm" color="success" type="pill-color">
-                        Disponible
-                    </BadgeWithDot>
+                    <Badge size="sm" color={availability.color} type="pill-color">
+                        {availability.label}
+                    </Badge>
                 )}
             </Table.Cell>
             <Table.Cell>
@@ -427,16 +489,39 @@ function RookieRow({
 function RookieTable({
     rookies,
     universeId,
+    currentYear,
     onEdit,
     onDelete,
     onDraft,
 }: {
     rookies: RookiePool[];
     universeId: string;
+    currentYear: number | null;
     onEdit: (rookie: RookiePool) => void;
     onDelete: (rookie: RookiePool) => void;
     onDraft: (rookie: RookiePool) => void;
 }) {
+    const rookieColumns = useMemo(
+        () => ({
+            rookie: (r: RookiePool) => `${r.first_name ?? ""} ${r.last_name}`,
+            nationalite: (r: RookiePool) => r.nationality,
+            note: (r: RookiePool) => r.note,
+            potentiel: (r: RookiePool) => r.potential_max,
+            dispo: (r: RookiePool) => r.available_from_year,
+        }),
+        [],
+    );
+
+    const { sortDescriptor, onSortChange, sortedItems: sortedRookies } =
+        useTableSort(rookies, rookieColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+    const deleteRookies = useDeleteRookies();
+
+    const allIds = useMemo(() => rookies.map((r) => r.id), [rookies]);
+    const selectedCount = getSelectedCount(selectedKeys, allIds.length);
+
     if (rookies.length === 0) {
         return (
             <div className="flex min-h-60 items-center justify-center">
@@ -463,29 +548,76 @@ function RookieTable({
     }
 
     return (
-        <TableCard.Root>
-            <Table>
-                <Table.Header>
-                    <Table.Head label="Rookie" isRowHeader />
-                    <Table.Head label="Nationalite" />
-                    <Table.Head label="Potentiel" />
-                    <Table.Head label="Dispo des" />
-                    <Table.Head label="Statut" />
-                    <Table.Head label="" />
-                </Table.Header>
-                <Table.Body items={rookies}>
-                    {(rookie) => (
-                        <RookieRow
-                            key={rookie.id}
-                            rookie={rookie}
-                            onEdit={() => onEdit(rookie)}
-                            onDelete={() => onDelete(rookie)}
-                            onDraft={() => onDraft(rookie)}
-                        />
-                    )}
-                </Table.Body>
-            </Table>
-        </TableCard.Root>
+        <>
+            <TableCard.Root>
+                {selectedCount > 0 && (
+                    <TableSelectionBar
+                        count={selectedCount}
+                        onClearSelection={() => setSelectedKeys(new Set())}
+                        actions={
+                            <Button
+                                size="sm"
+                                color="primary-destructive"
+                                iconLeading={Trash01}
+                                onClick={() => setBulkDeleteOpen(true)}
+                            >
+                                Supprimer
+                            </Button>
+                        }
+                    />
+                )}
+                <Table
+                    sortDescriptor={sortDescriptor}
+                    onSortChange={onSortChange}
+                    selectionMode="multiple"
+                    selectionBehavior="toggle"
+                    selectedKeys={selectedKeys}
+                    onSelectionChange={setSelectedKeys}
+                >
+                    <Table.Header>
+                        <Table.Head id="rookie" label="Rookie" isRowHeader allowsSorting />
+                        <Table.Head id="nationalite" label="Nationalite" allowsSorting />
+                        <Table.Head id="note" label="Note" allowsSorting />
+                        <Table.Head id="potentiel" label="Potentiel" allowsSorting />
+                        <Table.Head id="dispo" label="Dispo des" allowsSorting />
+                        <Table.Head label="Statut" />
+                        <Table.Head label="" />
+                    </Table.Header>
+                    <Table.Body items={sortedRookies}>
+                        {(rookie) => (
+                            <RookieRow
+                                key={rookie.id}
+                                rookie={rookie}
+                                currentYear={currentYear}
+                                onEdit={() => onEdit(rookie)}
+                                onDelete={() => onDelete(rookie)}
+                                onDraft={() => onDraft(rookie)}
+                            />
+                        )}
+                    </Table.Body>
+                </Table>
+            </TableCard.Root>
+
+            <BulkDeleteDialog
+                count={selectedCount}
+                entityLabel="rookie"
+                isOpen={bulkDeleteOpen}
+                onOpenChange={setBulkDeleteOpen}
+                isPending={deleteRookies.isPending}
+                onConfirm={() => {
+                    const ids = getSelectedIds(selectedKeys, allIds);
+                    deleteRookies.mutate(
+                        { ids, universeId },
+                        {
+                            onSuccess: () => {
+                                setSelectedKeys(new Set());
+                                setBulkDeleteOpen(false);
+                            },
+                        },
+                    );
+                }}
+            />
+        </>
     );
 }
 
@@ -498,6 +630,7 @@ const rookieExampleJson = JSON.stringify(
             first_name: "Kimi",
             nationality: "ITA",
             birth_year: 2006,
+            note: 7,
             potential_min: 6,
             potential_max: 9,
             available_from_year: 2025,
@@ -511,10 +644,11 @@ const rookieFields = [
     { name: "last_name", required: true, description: "Nom de famille" },
     { name: "first_name", required: false, description: "Prenom" },
     { name: "nationality", required: false, description: "Code pays (GBR, FRA, ITA, NED...)" },
-    { name: "birth_year", required: false, description: "Annee de naissance (1980–2015)" },
+    { name: "birth_year", required: false, description: "Annee de naissance (1940–2015)" },
+    { name: "note", required: false, description: "Note de base a l'arrivee en F1 (0–10)" },
     { name: "potential_min", required: true, description: "Potentiel minimum, entier (0–10)" },
     { name: "potential_max", required: true, description: "Potentiel maximum, entier (0–10, >= min)" },
-    { name: "available_from_year", required: false, description: "Disponible a partir de (2000–2100)" },
+    { name: "available_from_year", required: false, description: "Disponible a partir de (1950–2100)" },
 ];
 
 // ─── Page ───────────────────────────────────────────────────────────────────
@@ -524,18 +658,24 @@ export default function RookiesPoolPage() {
     const universeId = params.id;
 
     const { data: rookies, isLoading, error } = useRookiePool(universeId);
+    const { data: universe } = useUniverse(universeId);
+    const { data: seasons } = useSeasons(universeId);
     const importRookies = useImportRookies();
 
     const [editingRookie, setEditingRookie] = useState<RookiePool | null>(null);
     const [deletingRookie, setDeletingRookie] = useState<RookiePool | null>(null);
     const [draftingRookie, setDraftingRookie] = useState<RookiePool | null>(null);
 
-    const available = useMemo(
-        () => (rookies ?? []).filter((r) => !r.drafted),
-        [rookies],
-    );
+    // Current year = latest season year, fallback to universe start_year
+    const currentYear = seasons?.[0]?.year ?? universe?.start_year ?? null;
+
     const drafted = useMemo(
         () => (rookies ?? []).filter((r) => r.drafted),
+        [rookies],
+    );
+
+    const undrafted = useMemo(
+        () => (rookies ?? []).filter((r) => !r.drafted),
         [rookies],
     );
 
@@ -598,7 +738,7 @@ export default function RookiesPoolPage() {
                         type="button-gray"
                         size="sm"
                         items={[
-                            { id: "available", label: `Disponibles (${available.length})` },
+                            { id: "available", label: `Disponibles (${undrafted.length})` },
                             { id: "drafted", label: `Recrutes (${drafted.length})` },
                             { id: "all", label: `Tous (${rookies?.length ?? 0})` },
                         ]}
@@ -606,8 +746,9 @@ export default function RookiesPoolPage() {
 
                     <Tabs.Panel id="available" className="pt-6">
                         <RookieTable
-                            rookies={available}
+                            rookies={undrafted}
                             universeId={universeId}
+                            currentYear={currentYear}
                             onEdit={setEditingRookie}
                             onDelete={setDeletingRookie}
                             onDraft={setDraftingRookie}
@@ -618,6 +759,7 @@ export default function RookiesPoolPage() {
                         <RookieTable
                             rookies={drafted}
                             universeId={universeId}
+                            currentYear={currentYear}
                             onEdit={setEditingRookie}
                             onDelete={setDeletingRookie}
                             onDraft={setDraftingRookie}
@@ -628,6 +770,7 @@ export default function RookiesPoolPage() {
                         <RookieTable
                             rookies={rookies ?? []}
                             universeId={universeId}
+                            currentYear={currentYear}
                             onEdit={setEditingRookie}
                             onDelete={setDeletingRookie}
                             onDraft={setDraftingRookie}
@@ -665,6 +808,7 @@ export default function RookiesPoolPage() {
                 <DraftRookieDialog
                     universeId={universeId}
                     rookie={draftingRookie}
+                    currentYear={currentYear}
                     isOpen={!!draftingRookie}
                     onOpenChange={(open) => {
                         if (!open) setDraftingRookie(null);

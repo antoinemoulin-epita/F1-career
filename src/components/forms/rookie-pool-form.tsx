@@ -100,6 +100,7 @@ export function RookiePoolForm({ universeId, rookie, onSuccess, onCancel }: Rook
                   last_name: rookie.last_name,
                   nationality: rookie.nationality ?? "",
                   birth_year: rookie.birth_year ?? null,
+                  note: rookie.note ?? null,
                   potential_min: rookie.potential_min,
                   potential_max: rookie.potential_max,
                   available_from_year: rookie.available_from_year ?? null,
@@ -150,6 +151,7 @@ export function RookiePoolForm({ universeId, rookie, onSuccess, onCancel }: Rook
 
                 {/* Potentiel */}
                 <Section title="Potentiel">
+                    <RHFNumberInput name="note" control={form.control} label="Note de base (arrivee en F1)" placeholder="5" />
                     <div className="grid grid-cols-2 gap-4">
                         <RHFNumberInput name="potential_min" control={form.control} label="Potentiel min" placeholder="3" />
                         <RHFNumberInput name="potential_max" control={form.control} label="Potentiel max" placeholder="7" />

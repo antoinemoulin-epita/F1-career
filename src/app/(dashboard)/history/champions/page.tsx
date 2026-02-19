@@ -1,18 +1,17 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import { useSearchParams } from "next/navigation";
-import {
-    Trophy01,
-    Users01,
-} from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
-import { Button } from "@/components/base/buttons/button";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
 import { useChampions } from "@/hooks/use-history";
+import { getSelectedCount } from "@/utils/selection";
+import { useTableSort } from "@/hooks/use-table-sort";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -30,10 +29,275 @@ type ConstructorTitleSummary = {
     years: number[];
 };
 
+type ChampionRow = {
+    id: string;
+    year: number;
+    champion_driver_name: string | null;
+    champion_driver_team: string | null;
+    champion_driver_points: number | null;
+    champion_team_name: string | null;
+    champion_team_points: number | null;
+};
+
 const TABS = [
     { id: "drivers" as const, label: "Pilotes" },
     { id: "constructors" as const, label: "Constructeurs" },
 ];
+
+// ─── Sub-components ─────────────────────────────────────────────────────────
+
+const driverTitleColumns = {
+    pilote: (r: DriverTitleSummary) => r.name,
+    titres: (r: DriverTitleSummary) => r.titles,
+};
+
+function DriverTitlesTable({ titles }: { titles: DriverTitleSummary[] }) {
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(titles, driverTitleColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, titles.length);
+
+    return (
+        <TableCard.Root>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header title="Palmares" badge={String(titles.length)} />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
+                <Table.Header>
+                    <Table.Head id="pilote" label="Pilote" isRowHeader allowsSorting />
+                    <Table.Head id="titres" label="Titres" allowsSorting />
+                    <Table.Head label="Saisons" />
+                </Table.Header>
+                <Table.Body items={sortedItems}>
+                    {(row) => (
+                        <Table.Row id={row.name}>
+                            <Table.Cell>
+                                <span className="text-sm font-medium text-primary">
+                                    {row.name}
+                                </span>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <Badge size="sm" color="success" type="pill-color">
+                                    {row.titles}
+                                </Badge>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <span className="text-sm text-tertiary">
+                                    {row.years.sort((a, b) => a - b).join(", ")}
+                                </span>
+                            </Table.Cell>
+                        </Table.Row>
+                    )}
+                </Table.Body>
+            </Table>
+        </TableCard.Root>
+    );
+}
+
+const driverHistoryColumns = {
+    saison: (r: ChampionRow) => r.year,
+    champion: (r: ChampionRow) => r.champion_driver_name,
+    equipe: (r: ChampionRow) => r.champion_driver_team,
+    points: (r: ChampionRow) => r.champion_driver_points,
+};
+
+function DriverHistoryTable({ champions }: { champions: ChampionRow[] }) {
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(champions, driverHistoryColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, champions.length);
+
+    return (
+        <TableCard.Root>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header title="Historique" badge={String(champions.length)} />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
+                <Table.Header>
+                    <Table.Head id="saison" label="Saison" isRowHeader allowsSorting />
+                    <Table.Head id="champion" label="Champion" allowsSorting />
+                    <Table.Head id="equipe" label="Equipe" allowsSorting />
+                    <Table.Head id="points" label="Points" allowsSorting />
+                </Table.Header>
+                <Table.Body items={sortedItems}>
+                    {(row) => (
+                        <Table.Row id={row.id}>
+                            <Table.Cell>
+                                <Badge size="sm" color="brand" type="pill-color">
+                                    {row.year}
+                                </Badge>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <span className="text-sm font-medium text-primary">
+                                    {row.champion_driver_name ?? "—"}
+                                </span>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <span className="text-sm text-tertiary">
+                                    {row.champion_driver_team ?? "—"}
+                                </span>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <span className="text-sm font-semibold text-primary">
+                                    {row.champion_driver_points ?? "—"}
+                                </span>
+                            </Table.Cell>
+                        </Table.Row>
+                    )}
+                </Table.Body>
+            </Table>
+        </TableCard.Root>
+    );
+}
+
+const ctorTitleColumns = {
+    constructeur: (r: ConstructorTitleSummary) => r.name,
+    titres: (r: ConstructorTitleSummary) => r.titles,
+};
+
+function ConstructorTitlesTable({ titles }: { titles: ConstructorTitleSummary[] }) {
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(titles, ctorTitleColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, titles.length);
+
+    return (
+        <TableCard.Root>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header title="Palmares" badge={String(titles.length)} />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
+                <Table.Header>
+                    <Table.Head id="constructeur" label="Constructeur" isRowHeader allowsSorting />
+                    <Table.Head id="titres" label="Titres" allowsSorting />
+                    <Table.Head label="Saisons" />
+                </Table.Header>
+                <Table.Body items={sortedItems}>
+                    {(row) => (
+                        <Table.Row id={row.name}>
+                            <Table.Cell>
+                                <span className="text-sm font-medium text-primary">
+                                    {row.name}
+                                </span>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <Badge size="sm" color="success" type="pill-color">
+                                    {row.titles}
+                                </Badge>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <span className="text-sm text-tertiary">
+                                    {row.years.sort((a, b) => a - b).join(", ")}
+                                </span>
+                            </Table.Cell>
+                        </Table.Row>
+                    )}
+                </Table.Body>
+            </Table>
+        </TableCard.Root>
+    );
+}
+
+const ctorHistoryColumns = {
+    saison: (r: ChampionRow) => r.year,
+    champion: (r: ChampionRow) => r.champion_team_name,
+    points: (r: ChampionRow) => r.champion_team_points,
+};
+
+function ConstructorHistoryTable({ champions }: { champions: ChampionRow[] }) {
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(champions, ctorHistoryColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, champions.length);
+
+    return (
+        <TableCard.Root>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header title="Historique" badge={String(champions.length)} />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
+                <Table.Header>
+                    <Table.Head id="saison" label="Saison" isRowHeader allowsSorting />
+                    <Table.Head id="champion" label="Champion" allowsSorting />
+                    <Table.Head id="points" label="Points" allowsSorting />
+                </Table.Header>
+                <Table.Body items={sortedItems}>
+                    {(row) => (
+                        <Table.Row id={`ctor-${row.id}`}>
+                            <Table.Cell>
+                                <Badge size="sm" color="brand" type="pill-color">
+                                    {row.year}
+                                </Badge>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <span className="text-sm font-medium text-primary">
+                                    {row.champion_team_name ?? "—"}
+                                </span>
+                            </Table.Cell>
+                            <Table.Cell>
+                                <span className="text-sm font-semibold text-primary">
+                                    {row.champion_team_points ?? "—"}
+                                </span>
+                            </Table.Cell>
+                        </Table.Row>
+                    )}
+                </Table.Body>
+            </Table>
+        </TableCard.Root>
+    );
+}
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
@@ -149,152 +413,20 @@ function ChampionsPageContent() {
                 {/* Drivers tab */}
                 <Tabs.Panel id="drivers" className="mt-6">
                     <div className="space-y-6">
-                        {/* Titles summary */}
                         {driverTitles.length > 0 && (
-                            <TableCard.Root>
-                                <TableCard.Header title="Palmares" badge={String(driverTitles.length)} />
-                                <Table>
-                                    <Table.Header>
-                                        <Table.Head label="Pilote" isRowHeader />
-                                        <Table.Head label="Titres" />
-                                        <Table.Head label="Saisons" />
-                                    </Table.Header>
-                                    <Table.Body items={driverTitles}>
-                                        {(row) => (
-                                            <Table.Row id={row.name}>
-                                                <Table.Cell>
-                                                    <span className="text-sm font-medium text-primary">
-                                                        {row.name}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <Badge size="sm" color="success" type="pill-color">
-                                                        {row.titles}
-                                                    </Badge>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.years.sort((a, b) => a - b).join(", ")}
-                                                    </span>
-                                                </Table.Cell>
-                                            </Table.Row>
-                                        )}
-                                    </Table.Body>
-                                </Table>
-                            </TableCard.Root>
+                            <DriverTitlesTable titles={driverTitles} />
                         )}
-
-                        {/* Season history */}
-                        <TableCard.Root>
-                            <TableCard.Header title="Historique" badge={String(champions.length)} />
-                            <Table>
-                                <Table.Header>
-                                    <Table.Head label="Saison" isRowHeader />
-                                    <Table.Head label="Champion" />
-                                    <Table.Head label="Equipe" />
-                                    <Table.Head label="Points" />
-                                </Table.Header>
-                                <Table.Body items={champions}>
-                                    {(row) => (
-                                        <Table.Row id={row.id}>
-                                            <Table.Cell>
-                                                <Badge size="sm" color="brand" type="pill-color">
-                                                    {row.year}
-                                                </Badge>
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                <span className="text-sm font-medium text-primary">
-                                                    {row.champion_driver_name ?? "—"}
-                                                </span>
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                <span className="text-sm text-tertiary">
-                                                    {row.champion_driver_team ?? "—"}
-                                                </span>
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                <span className="text-sm font-semibold text-primary">
-                                                    {row.champion_driver_points ?? "—"}
-                                                </span>
-                                            </Table.Cell>
-                                        </Table.Row>
-                                    )}
-                                </Table.Body>
-                            </Table>
-                        </TableCard.Root>
+                        <DriverHistoryTable champions={champions as ChampionRow[]} />
                     </div>
                 </Tabs.Panel>
 
                 {/* Constructors tab */}
                 <Tabs.Panel id="constructors" className="mt-6">
                     <div className="space-y-6">
-                        {/* Titles summary */}
                         {constructorTitles.length > 0 && (
-                            <TableCard.Root>
-                                <TableCard.Header title="Palmares" badge={String(constructorTitles.length)} />
-                                <Table>
-                                    <Table.Header>
-                                        <Table.Head label="Constructeur" isRowHeader />
-                                        <Table.Head label="Titres" />
-                                        <Table.Head label="Saisons" />
-                                    </Table.Header>
-                                    <Table.Body items={constructorTitles}>
-                                        {(row) => (
-                                            <Table.Row id={row.name}>
-                                                <Table.Cell>
-                                                    <span className="text-sm font-medium text-primary">
-                                                        {row.name}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <Badge size="sm" color="success" type="pill-color">
-                                                        {row.titles}
-                                                    </Badge>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.years.sort((a, b) => a - b).join(", ")}
-                                                    </span>
-                                                </Table.Cell>
-                                            </Table.Row>
-                                        )}
-                                    </Table.Body>
-                                </Table>
-                            </TableCard.Root>
+                            <ConstructorTitlesTable titles={constructorTitles} />
                         )}
-
-                        {/* Season history */}
-                        <TableCard.Root>
-                            <TableCard.Header title="Historique" badge={String(champions.length)} />
-                            <Table>
-                                <Table.Header>
-                                    <Table.Head label="Saison" isRowHeader />
-                                    <Table.Head label="Champion" />
-                                    <Table.Head label="Points" />
-                                </Table.Header>
-                                <Table.Body items={champions}>
-                                    {(row) => (
-                                        <Table.Row id={`ctor-${row.id}`}>
-                                            <Table.Cell>
-                                                <Badge size="sm" color="brand" type="pill-color">
-                                                    {row.year}
-                                                </Badge>
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                <span className="text-sm font-medium text-primary">
-                                                    {row.champion_team_name ?? "—"}
-                                                </span>
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                <span className="text-sm font-semibold text-primary">
-                                                    {row.champion_team_points ?? "—"}
-                                                </span>
-                                            </Table.Cell>
-                                        </Table.Row>
-                                    )}
-                                </Table.Body>
-                            </Table>
-                        </TableCard.Root>
+                        <ConstructorHistoryTable champions={champions as ChampionRow[]} />
                     </div>
                 </Tabs.Panel>
             </Tabs>

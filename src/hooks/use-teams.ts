@@ -122,3 +122,20 @@ export function useDeleteTeam() {
         },
     });
 }
+
+export function useDeleteTeams() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ ids }: { ids: string[]; seasonId: string }) => {
+            const { error } = await supabase
+                .from("teams")
+                .delete()
+                .in("id", ids);
+            if (error) throw error;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: teamKeys.bySeason(variables.seasonId) });
+        },
+    });
+}

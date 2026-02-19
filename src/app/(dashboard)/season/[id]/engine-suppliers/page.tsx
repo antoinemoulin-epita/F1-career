@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
@@ -23,11 +24,15 @@ import {
     ModalOverlay,
 } from "@/components/application/modals/modal";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
+import { BulkDeleteDialog } from "@/components/application/table/bulk-delete-dialog";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { EngineSupplierForm } from "@/components/forms/engine-supplier-form";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
-import { useEngineSuppliers, useDeleteEngineSupplier } from "@/hooks/use-engine-suppliers";
+import { useEngineSuppliers, useDeleteEngineSupplier, useDeleteEngineSuppliers } from "@/hooks/use-engine-suppliers";
+import { getSelectedIds, getSelectedCount } from "@/utils/selection";
 import { useImportEngineSuppliers } from "@/hooks/use-import-engine-suppliers";
+import { useTableSort } from "@/hooks/use-table-sort";
 import { engineSupplierSchema } from "@/lib/validators";
 import type { EngineSupplier } from "@/types";
 
@@ -289,9 +294,28 @@ export default function EngineSuppliersPage() {
 
     const { data: suppliers, isLoading, error } = useEngineSuppliers(seasonId);
     const importSuppliers = useImportEngineSuppliers();
+    const deleteSuppliers = useDeleteEngineSuppliers();
 
     const [editingSupplier, setEditingSupplier] = useState<EngineSupplier | null>(null);
     const [deletingSupplier, setDeletingSupplier] = useState<EngineSupplier | null>(null);
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+    const allIds = useMemo(() => (suppliers ?? []).map((s) => s.id), [suppliers]);
+    const selectedCount = getSelectedCount(selectedKeys, allIds.length);
+
+    const supplierColumns = useMemo(
+        () => ({
+            nom: (s: EngineSupplier) => s.name,
+            nationalite: (s: EngineSupplier) => s.nationality,
+            note: (s: EngineSupplier) => s.note,
+            investissement: (s: EngineSupplier) => s.investment_level,
+        }),
+        [],
+    );
+
+    const { sortDescriptor, onSortChange, sortedItems: sortedSuppliers } =
+        useTableSort(suppliers ?? [], supplierColumns);
 
     if (isLoading) {
         return <PageLoading label="Chargement des motoristes..." />;
@@ -370,20 +394,44 @@ export default function EngineSuppliersPage() {
                     </div>
                 ) : (
                     <TableCard.Root>
-                        <TableCard.Header
-                            title="Motoristes"
-                            badge={String(suppliers.length)}
-                            contentTrailing={<CreateSupplierDialog seasonId={seasonId} />}
-                        />
-                        <Table>
+                        {selectedCount > 0 ? (
+                            <TableSelectionBar
+                                count={selectedCount}
+                                onClearSelection={() => setSelectedKeys(new Set())}
+                                actions={
+                                    <Button
+                                        size="sm"
+                                        color="primary-destructive"
+                                        iconLeading={Trash01}
+                                        onClick={() => setBulkDeleteOpen(true)}
+                                    >
+                                        Supprimer
+                                    </Button>
+                                }
+                            />
+                        ) : (
+                            <TableCard.Header
+                                title="Motoristes"
+                                badge={String(suppliers.length)}
+                                contentTrailing={<CreateSupplierDialog seasonId={seasonId} />}
+                            />
+                        )}
+                        <Table
+                            sortDescriptor={sortDescriptor}
+                            onSortChange={onSortChange}
+                            selectionMode="multiple"
+                            selectionBehavior="toggle"
+                            selectedKeys={selectedKeys}
+                            onSelectionChange={setSelectedKeys}
+                        >
                             <Table.Header>
-                                <Table.Head label="Nom" isRowHeader />
-                                <Table.Head label="Nationalite" />
-                                <Table.Head label="Note" />
-                                <Table.Head label="Investissement" />
+                                <Table.Head id="nom" label="Nom" isRowHeader allowsSorting />
+                                <Table.Head id="nationalite" label="Nationalite" allowsSorting />
+                                <Table.Head id="note" label="Note" allowsSorting />
+                                <Table.Head id="investissement" label="Investissement" allowsSorting />
                                 <Table.Head label="" />
                             </Table.Header>
-                            <Table.Body items={suppliers}>
+                            <Table.Body items={sortedSuppliers}>
                                 {(supplier) => (
                                     <SupplierRow
                                         key={supplier.id}
@@ -417,6 +465,27 @@ export default function EngineSuppliersPage() {
                     onOpenChange={(open) => { if (!open) setDeletingSupplier(null); }}
                 />
             )}
+
+            {/* Bulk delete dialog */}
+            <BulkDeleteDialog
+                count={selectedCount}
+                entityLabel="motoriste"
+                isOpen={bulkDeleteOpen}
+                onOpenChange={setBulkDeleteOpen}
+                isPending={deleteSuppliers.isPending}
+                onConfirm={() => {
+                    const ids = getSelectedIds(selectedKeys, allIds);
+                    deleteSuppliers.mutate(
+                        { ids, seasonId },
+                        {
+                            onSuccess: () => {
+                                setSelectedKeys(new Set());
+                                setBulkDeleteOpen(false);
+                            },
+                        },
+                    );
+                }}
+            />
         </div>
     );
 }

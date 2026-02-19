@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -22,6 +23,8 @@ import { Button } from "@/components/base/buttons/button";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
+import { getSelectedCount } from "@/utils/selection";
 import {
     Dialog,
     DialogTrigger,
@@ -31,6 +34,7 @@ import {
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { NewsForm } from "@/components/forms/news-form";
 import { useSeason } from "@/hooks/use-seasons";
+import { useTableSort } from "@/hooks/use-table-sort";
 import { useCalendar } from "@/hooks/use-calendar";
 import { useDrivers } from "@/hooks/use-drivers";
 import { useTeams } from "@/hooks/use-teams";
@@ -217,44 +221,75 @@ function SeasonCompletedCard() {
 
 // ─── StandingsTable ─────────────────────────────────────────────────────────
 
+type DriverStandingRow = {
+    driver_id: string | null;
+    position: number | null;
+    points: number | null;
+    wins: number | null;
+    podiums: number | null;
+    poles: number | null;
+    first_name: string | null;
+    last_name: string | null;
+    team_name: string | null;
+    team_color: string | null;
+};
+
+const driverStandingColumns = {
+    pos: (r: DriverStandingRow) => r.position,
+    pilote: (r: DriverStandingRow) => `${r.first_name ?? ""} ${r.last_name ?? ""}`,
+    pts: (r: DriverStandingRow) => r.points,
+    v: (r: DriverStandingRow) => r.wins,
+    p: (r: DriverStandingRow) => r.podiums,
+    pp: (r: DriverStandingRow) => r.poles,
+};
+
 function DriverStandingsSection({
     standings,
     leaderPoints,
 }: {
-    standings: {
-        driver_id: string | null;
-        position: number | null;
-        points: number | null;
-        wins: number | null;
-        podiums: number | null;
-        poles: number | null;
-        first_name: string | null;
-        last_name: string | null;
-        team_name: string | null;
-        team_color: string | null;
-    }[];
+    standings: DriverStandingRow[];
     leaderPoints: number;
 }) {
     const top10 = standings.slice(0, 10);
     const hasMore = standings.length > 10;
 
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(top10, driverStandingColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, top10.length);
+
     return (
         <TableCard.Root>
-            <TableCard.Header
-                title="Classement pilotes"
-                badge={String(standings.length)}
-            />
-            <Table>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header
+                    title="Classement pilotes"
+                    badge={String(standings.length)}
+                />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
                 <Table.Header>
-                    <Table.Head label="#" isRowHeader />
-                    <Table.Head label="Pilote" />
-                    <Table.Head label="Pts" />
-                    <Table.Head label="V" />
-                    <Table.Head label="P" />
-                    <Table.Head label="PP" />
+                    <Table.Head id="pos" label="#" isRowHeader allowsSorting />
+                    <Table.Head id="pilote" label="Pilote" allowsSorting />
+                    <Table.Head id="pts" label="Pts" allowsSorting />
+                    <Table.Head id="v" label="V" allowsSorting />
+                    <Table.Head id="p" label="P" allowsSorting />
+                    <Table.Head id="pp" label="PP" allowsSorting />
                     <Table.Head label="Ecart" />
                 </Table.Header>
-                <Table.Body items={top10}>
+                <Table.Body items={sortedItems}>
                     {(row) => {
                         const pos = row.position ?? 0;
                         const pts = row.points ?? 0;
@@ -334,39 +369,70 @@ function DriverStandingsSection({
     );
 }
 
+type ConstructorStandingRow = {
+    team_id: string | null;
+    position: number | null;
+    points: number | null;
+    wins: number | null;
+    podiums: number | null;
+    poles: number | null;
+    team_name: string | null;
+    team_color: string | null;
+};
+
+const constructorStandingColumns = {
+    pos: (r: ConstructorStandingRow) => r.position,
+    equipe: (r: ConstructorStandingRow) => r.team_name,
+    pts: (r: ConstructorStandingRow) => r.points,
+    v: (r: ConstructorStandingRow) => r.wins,
+    p: (r: ConstructorStandingRow) => r.podiums,
+    pp: (r: ConstructorStandingRow) => r.poles,
+};
+
 function ConstructorStandingsSection({
     standings,
     leaderPoints,
 }: {
-    standings: {
-        team_id: string | null;
-        position: number | null;
-        points: number | null;
-        wins: number | null;
-        podiums: number | null;
-        poles: number | null;
-        team_name: string | null;
-        team_color: string | null;
-    }[];
+    standings: ConstructorStandingRow[];
     leaderPoints: number;
 }) {
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(standings, constructorStandingColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, standings.length);
+
     return (
         <TableCard.Root>
-            <TableCard.Header
-                title="Classement constructeurs"
-                badge={String(standings.length)}
-            />
-            <Table>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header
+                    title="Classement constructeurs"
+                    badge={String(standings.length)}
+                />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
                 <Table.Header>
-                    <Table.Head label="#" isRowHeader />
-                    <Table.Head label="Equipe" />
-                    <Table.Head label="Pts" />
-                    <Table.Head label="V" />
-                    <Table.Head label="P" />
-                    <Table.Head label="PP" />
+                    <Table.Head id="pos" label="#" isRowHeader allowsSorting />
+                    <Table.Head id="equipe" label="Equipe" allowsSorting />
+                    <Table.Head id="pts" label="Pts" allowsSorting />
+                    <Table.Head id="v" label="V" allowsSorting />
+                    <Table.Head id="p" label="P" allowsSorting />
+                    <Table.Head id="pp" label="PP" allowsSorting />
                     <Table.Head label="Ecart" />
                 </Table.Header>
-                <Table.Body items={standings}>
+                <Table.Body items={sortedItems}>
                     {(row) => {
                         const pos = row.position ?? 0;
                         const pts = row.points ?? 0;

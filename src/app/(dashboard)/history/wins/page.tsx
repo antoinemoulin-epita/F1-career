@@ -1,15 +1,18 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/base/badges/badges";
-import { Button } from "@/components/base/buttons/button";
 import { Select } from "@/components/base/select/select";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
 import { useAllTimeStats, type AllTimeDriverStat, type AllTimeTeamStat } from "@/hooks/use-history";
+import { getSelectedCount } from "@/utils/selection";
+import { useTableSort } from "@/hooks/use-table-sort";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,6 +29,228 @@ const FILTER_OPTIONS = [
     { id: "active", label: "Actifs" },
     { id: "retired", label: "Retraites" },
 ];
+
+// ─── Sub-components ─────────────────────────────────────────────────────────
+
+const driverWinsColumns = {
+    nom: (d: AllTimeDriverStat) => d.name,
+    v: (d: AllTimeDriverStat) => d.totalWins,
+    pdm: (d: AllTimeDriverStat) => d.totalPodiums,
+    pp: (d: AllTimeDriverStat) => d.totalPoles,
+    pts: (d: AllTimeDriverStat) => d.totalPoints,
+    saisons: (d: AllTimeDriverStat) => d.seasonsCount,
+};
+
+function DriversWinsTable({ drivers }: { drivers: AllTimeDriverStat[] }) {
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(drivers, driverWinsColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, drivers.length);
+
+    return (
+        <TableCard.Root>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header title="Pilotes" badge={String(drivers.length)} />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
+                <Table.Header>
+                    <Table.Head label="#" isRowHeader />
+                    <Table.Head id="nom" label="Pilote" allowsSorting />
+                    <Table.Head id="v" label="V" allowsSorting />
+                    <Table.Head id="pdm" label="Pdm" allowsSorting />
+                    <Table.Head id="pp" label="PP" allowsSorting />
+                    <Table.Head id="pts" label="Pts" allowsSorting />
+                    <Table.Head id="saisons" label="Saisons" allowsSorting />
+                    <Table.Head label="Meilleur" />
+                </Table.Header>
+                <Table.Body items={sortedItems.map((d, i) => ({ ...d, _pos: i + 1 }))}>
+                    {(row) => {
+                        const badgeColor =
+                            row._pos === 1 ? "warning" : row._pos <= 3 ? "brand" : "gray";
+                        return (
+                            <Table.Row id={row.name}>
+                                <Table.Cell>
+                                    <Badge size="sm" color={badgeColor} type="pill-color">
+                                        {row._pos}
+                                    </Badge>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-primary">
+                                            {row.name}
+                                        </span>
+                                        {row.bestFinish === 1 && (
+                                            <Badge size="sm" color="success" type="pill-color">
+                                                Champion
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm font-semibold text-primary">
+                                        {row.totalWins}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm text-tertiary">
+                                        {row.totalPodiums}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm text-tertiary">
+                                        {row.totalPoles}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm text-tertiary">
+                                        {row.totalPoints}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm text-tertiary">
+                                        {row.seasonsCount}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <Badge
+                                        size="sm"
+                                        color={row.bestFinish === 1 ? "warning" : row.bestFinish <= 3 ? "brand" : "gray"}
+                                        type="pill-color"
+                                    >
+                                        P{row.bestFinish}
+                                    </Badge>
+                                </Table.Cell>
+                            </Table.Row>
+                        );
+                    }}
+                </Table.Body>
+            </Table>
+        </TableCard.Root>
+    );
+}
+
+const teamWinsColumns = {
+    nom: (t: AllTimeTeamStat) => t.name,
+    v: (t: AllTimeTeamStat) => t.totalWins,
+    pdm: (t: AllTimeTeamStat) => t.totalPodiums,
+    pp: (t: AllTimeTeamStat) => t.totalPoles,
+    pts: (t: AllTimeTeamStat) => t.totalPoints,
+    saisons: (t: AllTimeTeamStat) => t.seasonsCount,
+};
+
+function TeamsWinsTable({ teams }: { teams: AllTimeTeamStat[] }) {
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(teams, teamWinsColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, teams.length);
+
+    return (
+        <TableCard.Root>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header title="Constructeurs" badge={String(teams.length)} />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
+                <Table.Header>
+                    <Table.Head label="#" isRowHeader />
+                    <Table.Head id="nom" label="Equipe" allowsSorting />
+                    <Table.Head id="v" label="V" allowsSorting />
+                    <Table.Head id="pdm" label="Pdm" allowsSorting />
+                    <Table.Head id="pp" label="PP" allowsSorting />
+                    <Table.Head id="pts" label="Pts" allowsSorting />
+                    <Table.Head id="saisons" label="Saisons" allowsSorting />
+                    <Table.Head label="Meilleur" />
+                </Table.Header>
+                <Table.Body items={sortedItems.map((t, i) => ({ ...t, _pos: i + 1 }))}>
+                    {(row) => {
+                        const badgeColor =
+                            row._pos === 1 ? "warning" : row._pos <= 3 ? "brand" : "gray";
+                        return (
+                            <Table.Row id={row.name}>
+                                <Table.Cell>
+                                    <Badge size="sm" color={badgeColor} type="pill-color">
+                                        {row._pos}
+                                    </Badge>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-primary">
+                                            {row.name}
+                                        </span>
+                                        {row.bestFinish === 1 && (
+                                            <Badge size="sm" color="success" type="pill-color">
+                                                Champion
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm font-semibold text-primary">
+                                        {row.totalWins}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm text-tertiary">
+                                        {row.totalPodiums}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm text-tertiary">
+                                        {row.totalPoles}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm text-tertiary">
+                                        {row.totalPoints}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <span className="text-sm text-tertiary">
+                                        {row.seasonsCount}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <Badge
+                                        size="sm"
+                                        color={row.bestFinish === 1 ? "warning" : row.bestFinish <= 3 ? "brand" : "gray"}
+                                        type="pill-color"
+                                    >
+                                        P{row.bestFinish}
+                                    </Badge>
+                                </Table.Cell>
+                            </Table.Row>
+                        );
+                    }}
+                </Table.Body>
+            </Table>
+        </TableCard.Root>
+    );
+}
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
@@ -172,82 +397,7 @@ function WinsPageContent() {
                             Aucun pilote trouve.
                         </p>
                     ) : (
-                        <TableCard.Root>
-                            <TableCard.Header title="Pilotes" badge={String(filteredDrivers.length)} />
-                            <Table>
-                                <Table.Header>
-                                    <Table.Head label="#" isRowHeader />
-                                    <Table.Head label="Pilote" />
-                                    <Table.Head label="V" />
-                                    <Table.Head label="Pdm" />
-                                    <Table.Head label="PP" />
-                                    <Table.Head label="Pts" />
-                                    <Table.Head label="Saisons" />
-                                    <Table.Head label="Meilleur" />
-                                </Table.Header>
-                                <Table.Body items={filteredDrivers.map((d, i) => ({ ...d, _pos: i + 1 }))}>
-                                    {(row) => {
-                                        const badgeColor =
-                                            row._pos === 1 ? "warning" : row._pos <= 3 ? "brand" : "gray";
-                                        return (
-                                            <Table.Row id={row.name}>
-                                                <Table.Cell>
-                                                    <Badge size="sm" color={badgeColor} type="pill-color">
-                                                        {row._pos}
-                                                    </Badge>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-medium text-primary">
-                                                            {row.name}
-                                                        </span>
-                                                        {row.bestFinish === 1 && (
-                                                            <Badge size="sm" color="success" type="pill-color">
-                                                                Champion
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm font-semibold text-primary">
-                                                        {row.totalWins}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.totalPodiums}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.totalPoles}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.totalPoints}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.seasonsCount}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <Badge
-                                                        size="sm"
-                                                        color={row.bestFinish === 1 ? "warning" : row.bestFinish <= 3 ? "brand" : "gray"}
-                                                        type="pill-color"
-                                                    >
-                                                        P{row.bestFinish}
-                                                    </Badge>
-                                                </Table.Cell>
-                                            </Table.Row>
-                                        );
-                                    }}
-                                </Table.Body>
-                            </Table>
-                        </TableCard.Root>
+                        <DriversWinsTable drivers={filteredDrivers} />
                     )}
                 </Tabs.Panel>
 
@@ -258,82 +408,7 @@ function WinsPageContent() {
                             Aucun constructeur trouve.
                         </p>
                     ) : (
-                        <TableCard.Root>
-                            <TableCard.Header title="Constructeurs" badge={String(sortedTeams.length)} />
-                            <Table>
-                                <Table.Header>
-                                    <Table.Head label="#" isRowHeader />
-                                    <Table.Head label="Equipe" />
-                                    <Table.Head label="V" />
-                                    <Table.Head label="Pdm" />
-                                    <Table.Head label="PP" />
-                                    <Table.Head label="Pts" />
-                                    <Table.Head label="Saisons" />
-                                    <Table.Head label="Meilleur" />
-                                </Table.Header>
-                                <Table.Body items={sortedTeams.map((t, i) => ({ ...t, _pos: i + 1 }))}>
-                                    {(row) => {
-                                        const badgeColor =
-                                            row._pos === 1 ? "warning" : row._pos <= 3 ? "brand" : "gray";
-                                        return (
-                                            <Table.Row id={row.name}>
-                                                <Table.Cell>
-                                                    <Badge size="sm" color={badgeColor} type="pill-color">
-                                                        {row._pos}
-                                                    </Badge>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-medium text-primary">
-                                                            {row.name}
-                                                        </span>
-                                                        {row.bestFinish === 1 && (
-                                                            <Badge size="sm" color="success" type="pill-color">
-                                                                Champion
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm font-semibold text-primary">
-                                                        {row.totalWins}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.totalPodiums}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.totalPoles}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.totalPoints}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-tertiary">
-                                                        {row.seasonsCount}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <Badge
-                                                        size="sm"
-                                                        color={row.bestFinish === 1 ? "warning" : row.bestFinish <= 3 ? "brand" : "gray"}
-                                                        type="pill-color"
-                                                    >
-                                                        P{row.bestFinish}
-                                                    </Badge>
-                                                </Table.Cell>
-                                            </Table.Row>
-                                        );
-                                    }}
-                                </Table.Body>
-                            </Table>
-                        </TableCard.Root>
+                        <TeamsWinsTable teams={sortedTeams} />
                     )}
                 </Tabs.Panel>
             </Tabs>

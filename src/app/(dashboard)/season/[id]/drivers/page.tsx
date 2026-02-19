@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
@@ -24,12 +25,16 @@ import {
     ModalOverlay,
 } from "@/components/application/modals/modal";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
+import { BulkDeleteDialog } from "@/components/application/table/bulk-delete-dialog";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { DriverForm } from "@/components/forms/driver-form";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
-import { useDrivers, useDeleteDriver } from "@/hooks/use-drivers";
+import { useDrivers, useDeleteDriver, useDeleteDrivers } from "@/hooks/use-drivers";
+import { getSelectedIds, getSelectedCount } from "@/utils/selection";
 import { useImportDrivers } from "@/hooks/use-import-drivers";
 import { useTeams } from "@/hooks/use-teams";
+import { useTableSort } from "@/hooks/use-table-sort";
 import { nationalityToFlag } from "@/lib/constants/nationalities";
 import { driverImportSchema, type DriverImportValues } from "@/lib/validators/driver-import";
 import type { DriverFormValues } from "@/lib/validators";
@@ -412,14 +417,37 @@ export default function DriversPage() {
     const { data: drivers, isLoading, error } = useDrivers(seasonId);
     const { data: teams } = useTeams(seasonId);
     const importDrivers = useImportDrivers();
+    const deleteDrivers = useDeleteDrivers();
 
     const [editingDriver, setEditingDriver] = useState<DriverWithEffective | null>(null);
     const [deletingDriver, setDeletingDriver] = useState<DriverWithEffective | null>(null);
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+    const allIds = useMemo(() => (drivers ?? []).map((d) => d.id!), [drivers]);
+    const selectedCount = getSelectedCount(selectedKeys, allIds.length);
 
     const teamMap = useMemo(
         () => new Map(teams?.map((t) => [t.id, t]) ?? []),
         [teams],
     );
+
+    const driverColumns = useMemo(
+        () => ({
+            pilote: (d: DriverWithEffective) => d.full_name ?? "",
+            equipe: (d: DriverWithEffective) =>
+                d.team_id ? teamMap.get(d.team_id)?.name ?? "" : "",
+            note: (d: DriverWithEffective) => d.note,
+            potentiel: (d: DriverWithEffective) =>
+                d.potential_revealed ? d.potential_final : d.potential_max,
+            accl: (d: DriverWithEffective) => d.acclimatation,
+            effective: (d: DriverWithEffective) => d.effective_note,
+        }),
+        [teamMap],
+    );
+
+    const { sortDescriptor, onSortChange, sortedItems: sortedDrivers } =
+        useTableSort(drivers ?? [], driverColumns);
 
     const driverFields = useMemo(
         () => buildDriverFields((teams ?? []).map((t) => t.name!)),
@@ -531,22 +559,46 @@ export default function DriversPage() {
                     </div>
                 ) : (
                     <TableCard.Root>
-                        <TableCard.Header
-                            title="Pilotes"
-                            badge={String(drivers.length)}
-                            contentTrailing={<CreateDriverDialog seasonId={seasonId} teams={teams ?? []} />}
-                        />
-                        <Table>
+                        {selectedCount > 0 ? (
+                            <TableSelectionBar
+                                count={selectedCount}
+                                onClearSelection={() => setSelectedKeys(new Set())}
+                                actions={
+                                    <Button
+                                        size="sm"
+                                        color="primary-destructive"
+                                        iconLeading={Trash01}
+                                        onClick={() => setBulkDeleteOpen(true)}
+                                    >
+                                        Supprimer
+                                    </Button>
+                                }
+                            />
+                        ) : (
+                            <TableCard.Header
+                                title="Pilotes"
+                                badge={String(drivers.length)}
+                                contentTrailing={<CreateDriverDialog seasonId={seasonId} teams={teams ?? []} />}
+                            />
+                        )}
+                        <Table
+                            sortDescriptor={sortDescriptor}
+                            onSortChange={onSortChange}
+                            selectionMode="multiple"
+                            selectionBehavior="toggle"
+                            selectedKeys={selectedKeys}
+                            onSelectionChange={setSelectedKeys}
+                        >
                             <Table.Header>
-                                <Table.Head label="Pilote" isRowHeader />
-                                <Table.Head label="Equipe" />
-                                <Table.Head label="Note" />
-                                <Table.Head label="Potentiel" />
-                                <Table.Head label="Accl." />
-                                <Table.Head label="Effective" />
+                                <Table.Head id="pilote" label="Pilote" isRowHeader allowsSorting />
+                                <Table.Head id="equipe" label="Equipe" allowsSorting />
+                                <Table.Head id="note" label="Note" allowsSorting />
+                                <Table.Head id="potentiel" label="Potentiel" allowsSorting />
+                                <Table.Head id="accl" label="Accl." allowsSorting />
+                                <Table.Head id="effective" label="Effective" allowsSorting />
                                 <Table.Head label="" />
                             </Table.Header>
-                            <Table.Body items={drivers}>
+                            <Table.Body items={sortedDrivers}>
                                 {(driver) => {
                                     const team = driver.team_id
                                         ? teamMap.get(driver.team_id)
@@ -592,6 +644,27 @@ export default function DriversPage() {
                     }}
                 />
             )}
+
+            {/* Bulk delete dialog */}
+            <BulkDeleteDialog
+                count={selectedCount}
+                entityLabel="pilote"
+                isOpen={bulkDeleteOpen}
+                onOpenChange={setBulkDeleteOpen}
+                isPending={deleteDrivers.isPending}
+                onConfirm={() => {
+                    const ids = getSelectedIds(selectedKeys, allIds);
+                    deleteDrivers.mutate(
+                        { ids, seasonId },
+                        {
+                            onSuccess: () => {
+                                setSelectedKeys(new Set());
+                                setBulkDeleteOpen(false);
+                            },
+                        },
+                    );
+                }}
+            />
         </div>
     );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import { useParams } from "next/navigation";
 import {
     Lock01,
@@ -20,8 +21,11 @@ import {
     ModalOverlay,
 } from "@/components/application/modals/modal";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { getSelectedCount } from "@/utils/selection";
 import { useSeason } from "@/hooks/use-seasons";
+import { useTableSort } from "@/hooks/use-table-sort";
 import { useCars } from "@/hooks/use-cars";
 import {
     useDriverPredictions,
@@ -98,36 +102,66 @@ function LockConfirmDialog({
 
 // ─── DriverPredictionsTable ─────────────────────────────────────────────────
 
+type DriverPredRow = {
+    id: string;
+    predicted_position: number;
+    score: number | null;
+    driver: {
+        full_name: string | null;
+        effective_note: number | null;
+        team_id: string | null;
+        color_primary?: string | null;
+    } | null;
+};
+
+const driverPredColumns = {
+    pos: (r: DriverPredRow) => r.predicted_position,
+    pilote: (r: DriverPredRow) => r.driver?.full_name,
+    note: (r: DriverPredRow) => r.driver?.effective_note,
+    voiture: (r: DriverPredRow) => Number(r.score ?? 0) - (r.driver?.effective_note ?? 0),
+    score: (r: DriverPredRow) => r.score,
+};
+
 function DriverPredictionsTable({
     predictions,
 }: {
-    predictions: {
-        id: string;
-        predicted_position: number;
-        score: number | null;
-        driver: {
-            full_name: string | null;
-            effective_note: number | null;
-            team_id: string | null;
-            color_primary?: string | null;
-        } | null;
-    }[];
+    predictions: DriverPredRow[];
 }) {
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(predictions, driverPredColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, predictions.length);
+
     return (
         <TableCard.Root>
-            <TableCard.Header
-                title="Classement pilotes predit"
-                badge={String(predictions.length)}
-            />
-            <Table>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header
+                    title="Classement pilotes predit"
+                    badge={String(predictions.length)}
+                />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
                 <Table.Header>
-                    <Table.Head label="#" isRowHeader />
-                    <Table.Head label="Pilote" />
-                    <Table.Head label="Note" />
-                    <Table.Head label="Voiture" />
-                    <Table.Head label="Score" />
+                    <Table.Head id="pos" label="#" isRowHeader allowsSorting />
+                    <Table.Head id="pilote" label="Pilote" allowsSorting />
+                    <Table.Head id="note" label="Note" allowsSorting />
+                    <Table.Head id="voiture" label="Voiture" allowsSorting />
+                    <Table.Head id="score" label="Score" allowsSorting />
                 </Table.Header>
-                <Table.Body items={predictions}>
+                <Table.Body items={sortedItems}>
                     {(row) => {
                         const pos = row.predicted_position;
                         const score = Number(row.score ?? 0);
@@ -182,37 +216,70 @@ function DriverPredictionsTable({
 
 // ─── ConstructorPredictionsTable ────────────────────────────────────────────
 
+type CtorPredRow = {
+    id: string;
+    predicted_position: number;
+    score: number | null;
+    team: {
+        id: string | null;
+        name: string | null;
+        color_primary: string | null;
+    } | null;
+};
+
 function ConstructorPredictionsTable({
     predictions,
     carTotalMap,
 }: {
-    predictions: {
-        id: string;
-        predicted_position: number;
-        score: number | null;
-        team: {
-            id: string | null;
-            name: string | null;
-            color_primary: string | null;
-        } | null;
-    }[];
+    predictions: CtorPredRow[];
     carTotalMap: Map<string, number>;
 }) {
+    const ctorPredColumns = useMemo(
+        () => ({
+            pos: (r: CtorPredRow) => r.predicted_position,
+            equipe: (r: CtorPredRow) => r.team?.name,
+            voiture: (r: CtorPredRow) => carTotalMap.get(r.team?.id ?? "") ?? 0,
+            moy: (r: CtorPredRow) => Number(r.score ?? 0) - (carTotalMap.get(r.team?.id ?? "") ?? 0),
+            score: (r: CtorPredRow) => r.score,
+        }),
+        [carTotalMap],
+    );
+
+    const { sortDescriptor, onSortChange, sortedItems } =
+        useTableSort(predictions, ctorPredColumns);
+
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const selectedCount = getSelectedCount(selectedKeys, predictions.length);
+
     return (
         <TableCard.Root>
-            <TableCard.Header
-                title="Classement constructeurs predit"
-                badge={String(predictions.length)}
-            />
-            <Table>
+            {selectedCount > 0 ? (
+                <TableSelectionBar
+                    count={selectedCount}
+                    onClearSelection={() => setSelectedKeys(new Set())}
+                />
+            ) : (
+                <TableCard.Header
+                    title="Classement constructeurs predit"
+                    badge={String(predictions.length)}
+                />
+            )}
+            <Table
+                sortDescriptor={sortDescriptor}
+                onSortChange={onSortChange}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+            >
                 <Table.Header>
-                    <Table.Head label="#" isRowHeader />
-                    <Table.Head label="Equipe" />
-                    <Table.Head label="Total voiture" />
-                    <Table.Head label="Moy. pilotes" />
-                    <Table.Head label="Score" />
+                    <Table.Head id="pos" label="#" isRowHeader allowsSorting />
+                    <Table.Head id="equipe" label="Equipe" allowsSorting />
+                    <Table.Head id="voiture" label="Total voiture" allowsSorting />
+                    <Table.Head id="moy" label="Moy. pilotes" allowsSorting />
+                    <Table.Head id="score" label="Score" allowsSorting />
                 </Table.Header>
-                <Table.Body items={predictions}>
+                <Table.Body items={sortedItems}>
                     {(row) => {
                         const pos = row.predicted_position;
                         const score = Number(row.score ?? 0);

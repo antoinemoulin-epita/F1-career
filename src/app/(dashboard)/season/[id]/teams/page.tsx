@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import type { Selection } from "react-aria-components";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
@@ -24,6 +25,8 @@ import {
     ModalOverlay,
 } from "@/components/application/modals/modal";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
+import { BulkDeleteDialog } from "@/components/application/table/bulk-delete-dialog";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { TeamForm } from "@/components/forms/team-form";
 import { SponsorObjectiveForm } from "@/components/forms/sponsor-objective-form";
@@ -31,7 +34,9 @@ import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { useSeason } from "@/hooks/use-seasons";
 import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
 import { useImportTeams } from "@/hooks/use-import-teams";
-import { useTeams, useDeleteTeam } from "@/hooks/use-teams";
+import { useTeams, useDeleteTeam, useDeleteTeams } from "@/hooks/use-teams";
+import { getSelectedIds, getSelectedCount } from "@/utils/selection";
+import { useTableSort } from "@/hooks/use-table-sort";
 import { useDrivers } from "@/hooks/use-drivers";
 import { useCircuits } from "@/hooks/use-circuits";
 import { useSponsorObjectives, useDeleteSponsorObjective } from "@/hooks/use-sponsor-objectives";
@@ -511,15 +516,35 @@ export default function TeamsPage() {
     const { data: suppliers } = useEngineSuppliers(seasonId);
     const universeId = season?.universe_id ?? "";
     const importTeams = useImportTeams();
+    const deleteTeams = useDeleteTeams();
 
     const [editingTeam, setEditingTeam] = useState<TeamWithBudget | null>(null);
     const [deletingTeam, setDeletingTeam] = useState<TeamWithBudget | null>(null);
     const [objectivesTeam, setObjectivesTeam] = useState<TeamWithBudget | null>(null);
+    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+    const allIds = useMemo(() => (teams ?? []).map((t) => t.id!), [teams]);
+    const selectedCount = getSelectedCount(selectedKeys, allIds.length);
 
     const supplierMap = useMemo(
         () => new Map(suppliers?.map((s) => [s.id, s]) ?? []),
         [suppliers],
     );
+
+    const teamColumns = useMemo(
+        () => ({
+            equipe: (t: TeamWithBudget) => t.name ?? "",
+            moteur: (t: TeamWithBudget) =>
+                t.engine_supplier_id ? supplierMap.get(t.engine_supplier_id)?.name ?? "" : "",
+            budget: (t: TeamWithBudget) => t.budget_total,
+            ingenieurs: (t: TeamWithBudget) => t.engineer_stars,
+        }),
+        [supplierMap],
+    );
+
+    const { sortDescriptor, onSortChange, sortedItems: sortedTeams } =
+        useTableSort(teams ?? [], teamColumns);
 
     const teamFields = useMemo(
         () => buildTeamFields((suppliers ?? []).map((s) => s.name)),
@@ -631,20 +656,44 @@ export default function TeamsPage() {
                     </div>
                 ) : (
                     <TableCard.Root>
-                        <TableCard.Header
-                            title="Equipes"
-                            badge={String(teams.length)}
-                            contentTrailing={<CreateTeamDialog seasonId={seasonId} universeId={universeId} />}
-                        />
-                        <Table>
+                        {selectedCount > 0 ? (
+                            <TableSelectionBar
+                                count={selectedCount}
+                                onClearSelection={() => setSelectedKeys(new Set())}
+                                actions={
+                                    <Button
+                                        size="sm"
+                                        color="primary-destructive"
+                                        iconLeading={Trash01}
+                                        onClick={() => setBulkDeleteOpen(true)}
+                                    >
+                                        Supprimer
+                                    </Button>
+                                }
+                            />
+                        ) : (
+                            <TableCard.Header
+                                title="Equipes"
+                                badge={String(teams.length)}
+                                contentTrailing={<CreateTeamDialog seasonId={seasonId} universeId={universeId} />}
+                            />
+                        )}
+                        <Table
+                            sortDescriptor={sortDescriptor}
+                            onSortChange={onSortChange}
+                            selectionMode="multiple"
+                            selectionBehavior="toggle"
+                            selectedKeys={selectedKeys}
+                            onSelectionChange={setSelectedKeys}
+                        >
                             <Table.Header>
-                                <Table.Head label="Equipe" isRowHeader />
-                                <Table.Head label="Moteur" />
-                                <Table.Head label="Budget" />
-                                <Table.Head label="Ingenieurs" />
+                                <Table.Head id="equipe" label="Equipe" isRowHeader allowsSorting />
+                                <Table.Head id="moteur" label="Moteur" allowsSorting />
+                                <Table.Head id="budget" label="Budget" allowsSorting />
+                                <Table.Head id="ingenieurs" label="Ingenieurs" allowsSorting />
                                 <Table.Head label="" />
                             </Table.Header>
-                            <Table.Body items={teams}>
+                            <Table.Body items={sortedTeams}>
                                 {(team) => (
                                     <TeamRow
                                         key={team.id}
@@ -696,6 +745,27 @@ export default function TeamsPage() {
                     onOpenChange={(open) => { if (!open) setObjectivesTeam(null); }}
                 />
             )}
+
+            {/* Bulk delete dialog */}
+            <BulkDeleteDialog
+                count={selectedCount}
+                entityLabel="equipe"
+                isOpen={bulkDeleteOpen}
+                onOpenChange={setBulkDeleteOpen}
+                isPending={deleteTeams.isPending}
+                onConfirm={() => {
+                    const ids = getSelectedIds(selectedKeys, allIds);
+                    deleteTeams.mutate(
+                        { ids, seasonId },
+                        {
+                            onSuccess: () => {
+                                setSelectedKeys(new Set());
+                                setBulkDeleteOpen(false);
+                            },
+                        },
+                    );
+                }}
+            />
         </div>
     );
 }
