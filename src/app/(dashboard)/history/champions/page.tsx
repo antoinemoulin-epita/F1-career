@@ -3,13 +3,19 @@
 import { Suspense, useMemo, useState } from "react";
 import type { Selection } from "react-aria-components";
 import { useSearchParams } from "next/navigation";
+import { Upload01 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
+import { Button } from "@/components/base/buttons/button";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { Table, TableCard } from "@/components/application/table/table";
 import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { useChampions } from "@/hooks/use-history";
+import { useImportHistoryChampions } from "@/hooks/use-import-history-champions";
+import { historyChampionImportSchema } from "@/lib/validators/history-champion-import";
+import type { HistoryChampionImportValues } from "@/lib/validators/history-champion-import";
 import { getSelectedCount } from "@/utils/selection";
 import { useTableSort } from "@/hooks/use-table-sort";
 
@@ -299,6 +305,34 @@ function ConstructorHistoryTable({ champions }: { champions: ChampionRow[] }) {
     );
 }
 
+// ─── Import config ──────────────────────────────────────────────────────────
+
+const IMPORT_EXAMPLE = JSON.stringify(
+    [
+        {
+            year: 2023,
+            driver_name: "Max Verstappen",
+            driver_team: "Red Bull",
+            driver_points: 575,
+            team_name: "Red Bull",
+            team_points: 860,
+            summary: "Domination totale de Verstappen",
+        },
+    ],
+    null,
+    2,
+);
+
+const IMPORT_FIELDS = [
+    { name: "year", required: true, description: "Annee de la saison (1950-2100)" },
+    { name: "driver_name", required: true, description: "Nom du champion pilote" },
+    { name: "driver_team", required: false, description: "Ecurie du champion pilote" },
+    { name: "driver_points", required: false, description: "Points du champion pilote" },
+    { name: "team_name", required: false, description: "Nom du champion constructeur" },
+    { name: "team_points", required: false, description: "Points du champion constructeur" },
+    { name: "summary", required: false, description: "Resume de la saison" },
+];
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function ChampionsPage() {
@@ -314,6 +348,7 @@ function ChampionsPageContent() {
     const universeId = searchParams.get("u") ?? "";
 
     const { data: champions, isLoading, error } = useChampions(universeId);
+    const importChampions = useImportHistoryChampions();
 
     const [activeTab, setActiveTab] = useState<TabId>("drivers");
 
@@ -390,13 +425,33 @@ function ChampionsPageContent() {
             </div>
 
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-display-sm font-semibold text-primary">
-                    Champions
-                </h1>
-                <p className="mt-1 text-sm text-tertiary">
-                    {champions.length} saison{champions.length !== 1 ? "s" : ""} archivee{champions.length !== 1 ? "s" : ""}
-                </p>
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-display-sm font-semibold text-primary">
+                        Champions
+                    </h1>
+                    <p className="mt-1 text-sm text-tertiary">
+                        {champions.length} saison{champions.length !== 1 ? "s" : ""} archivee{champions.length !== 1 ? "s" : ""}
+                    </p>
+                </div>
+                {universeId && (
+                    <ImportJsonDialog<HistoryChampionImportValues>
+                        title="Importer le palmares"
+                        description="Importez l'historique des champions depuis un fichier JSON."
+                        exampleData={IMPORT_EXAMPLE}
+                        fields={IMPORT_FIELDS}
+                        schema={historyChampionImportSchema}
+                        onImport={(items) =>
+                            importChampions.mutate({ universeId, rows: items })
+                        }
+                        isPending={importChampions.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                )}
             </div>
 
             {/* Tabs */}
