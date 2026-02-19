@@ -51,8 +51,6 @@ function normalizeForm(form: TeamFormValues) {
         nationality: form.nationality?.trim() || null,
         color_primary: form.color_primary?.trim() || null,
         color_secondary: form.color_secondary?.trim() || null,
-        team_principal: form.team_principal?.trim() || null,
-        technical_director: form.technical_director?.trim() || null,
         engineer_level: form.engineer_level ?? null,
         engine_supplier_id: form.engine_supplier_id ?? null,
         is_factory_team: form.is_factory_team ?? false,

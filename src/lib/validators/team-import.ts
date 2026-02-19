@@ -26,3 +26,7 @@ export const teamImportSchema = z.object({
 });
 
 export type TeamImportValues = z.infer<typeof teamImportSchema>;
+
+export type TeamImportResolved = Omit<TeamImportValues, "engine_supplier"> & {
+    engine_supplier_id: string | null;
+};

@@ -8,9 +8,7 @@ export const teamSchema = z.object({
     nationality: z.enum(validNationalityCodes as [string, ...string[]]).or(z.literal("")).optional(),
     color_primary: z.string().optional().or(z.literal("")),
     color_secondary: z.string().optional().or(z.literal("")),
-    // Staff
-    team_principal: z.string().optional().or(z.literal("")),
-    technical_director: z.string().optional().or(z.literal("")),
+    // Ingenieurs
     engineer_level: z.number().int().min(1).max(3).nullable().optional(),
     // Moteur
     engine_supplier_id: z.string().nullable().optional(),
@@ -33,8 +31,6 @@ export const teamFormDefaults: TeamFormValues = {
     nationality: "",
     color_primary: "",
     color_secondary: "",
-    team_principal: "",
-    technical_director: "",
     engineer_level: 2,
     engine_supplier_id: null,
     is_factory_team: false,

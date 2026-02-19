@@ -41,9 +41,8 @@ import { useDrivers } from "@/hooks/use-drivers";
 import { useCircuits } from "@/hooks/use-circuits";
 import { useSponsorObjectives, useDeleteSponsorObjective } from "@/hooks/use-sponsor-objectives";
 import { objectiveTypeLabels, objectiveTypeBadgeColor } from "@/lib/constants/arc-labels";
-import { teamImportSchema, type TeamImportValues } from "@/lib/validators/team-import";
+import { teamImportSchema, type TeamImportValues, type TeamImportResolved } from "@/lib/validators/team-import";
 import { TeamLink } from "@/components/profile/entity-link";
-import type { TeamFormValues } from "@/lib/validators";
 import type { Team, TeamWithBudget } from "@/types";
 
 // ─── CreateTeamDialog ───────────────────────────────────────────────────────
@@ -78,7 +77,6 @@ function CreateTeamDialog({ seasonId, universeId }: { seasonId: string; universe
                             </div>
                             <TeamForm
                                 seasonId={seasonId}
-                                universeId={universeId}
                                 onSuccess={() => setIsOpen(false)}
                                 onCancel={() => setIsOpen(false)}
                             />
@@ -129,7 +127,6 @@ function EditTeamDialog({
                             </div>
                             <TeamForm
                                 seasonId={seasonId}
-                                universeId={universeId}
                                 team={team}
                                 onSuccess={() => onOpenChange(false)}
                                 onCancel={() => onOpenChange(false)}
@@ -556,7 +553,7 @@ export default function TeamsPage() {
             const nameToId = new Map(
                 (suppliers ?? []).map((s) => [s.name.toLowerCase(), s.id]),
             );
-            const resolved: TeamFormValues[] = [];
+            const resolved: TeamImportResolved[] = [];
             const errors: string[] = [];
 
             items.forEach((item, i) => {
@@ -612,7 +609,7 @@ export default function TeamsPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <ImportJsonDialog<TeamImportValues, TeamFormValues>
+                    <ImportJsonDialog<TeamImportValues, TeamImportResolved>
                         title="Importer des equipes"
                         description="Importez des equipes depuis un fichier JSON."
                         exampleData={teamExampleJson}

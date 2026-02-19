@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { teamKeys } from "./use-teams";
-import type { TeamFormValues } from "@/lib/validators";
+import type { TeamImportResolved } from "@/lib/validators/team-import";
 
 const supabase = createClient();
 
@@ -17,7 +17,7 @@ export function useImportTeams() {
             rows,
         }: {
             seasonId: string;
-            rows: TeamFormValues[];
+            rows: TeamImportResolved[];
         }) => {
             const payload = rows.map((form) => ({
                 season_id: seasonId,
