@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
     Edit01,
     Plus,
     Trash01,
+    Upload01,
     Users01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
@@ -22,10 +23,14 @@ import {
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { StaffForm } from "@/components/forms/staff-form";
 import { useSeason } from "@/hooks/use-seasons";
 import { useTeams } from "@/hooks/use-teams";
 import { useStaff, useDeleteStaff, usePersonIdentities } from "@/hooks/use-staff";
+import { useImportStaff } from "@/hooks/use-import-staff";
+import { staffImportSchema } from "@/lib/validators/staff-import";
+import type { StaffImportValues, StaffImportResolved } from "@/lib/validators/staff-import";
 import { staffRoleLabels } from "@/lib/validators/staff";
 import type { StaffMember } from "@/types";
 
@@ -270,6 +275,42 @@ function StaffCard({
     );
 }
 
+// ─── Import config ──────────────────────────────────────────────────────────
+
+const staffExampleJson = JSON.stringify(
+    [
+        {
+            first_name: "Ron",
+            last_name: "Dennis",
+            nationality: "GBR",
+            birth_year: 1947,
+            team: "McLaren",
+            role: "principal",
+            note: 4.5,
+            potential_min: 4,
+            potential_max: 5,
+            contract_years_remaining: 3,
+            years_in_team: 5,
+        },
+    ],
+    null,
+    2,
+);
+
+const staffImportFields = [
+    { name: "first_name", required: true, description: "Prenom" },
+    { name: "last_name", required: true, description: "Nom de famille" },
+    { name: "nationality", required: false, description: "Code pays (GBR, FRA, ITA...)" },
+    { name: "birth_year", required: false, description: "Annee de naissance (1900–2015)" },
+    { name: "team", required: true, description: "Nom de l'equipe (doit exister)" },
+    { name: "role", required: true, description: "Role : principal, technical_director, sporting_director, chief_engineer" },
+    { name: "note", required: true, description: "Note (1–5, demi-pas : 1, 1.5, 2...)" },
+    { name: "potential_min", required: false, description: "Potentiel minimum (1–5)" },
+    { name: "potential_max", required: false, description: "Potentiel maximum (1–5)" },
+    { name: "contract_years_remaining", required: false, description: "Annees de contrat restantes (0+)" },
+    { name: "years_in_team", required: false, description: "Annees dans l'equipe (1+)" },
+];
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function StaffPage() {
@@ -279,6 +320,7 @@ export default function StaffPage() {
     const { data: season } = useSeason(seasonId);
     const { data: staffRaw, isLoading, error } = useStaff(seasonId);
     const { data: teamsRaw } = useTeams(seasonId);
+    const importStaff = useImportStaff();
 
     const [editingStaff, setEditingStaff] = useState<StaffWithPerson | null>(null);
     const [deletingStaff, setDeletingStaff] = useState<StaffWithPerson | null>(null);
@@ -295,6 +337,29 @@ export default function StaffPage() {
 
     const teamNameMap = useMemo(
         () => new Map(teams.map((t) => [t.id, t.name])),
+        [teams],
+    );
+
+    const resolveStaff = useCallback(
+        (items: StaffImportValues[]) => {
+            const nameToId = new Map(
+                teams.map((t) => [t.name.toLowerCase(), t.id]),
+            );
+            const resolved: StaffImportResolved[] = [];
+            const errors: string[] = [];
+
+            items.forEach((item, i) => {
+                const { team, ...rest } = item;
+                const teamId = nameToId.get(team.trim().toLowerCase());
+                if (!teamId) {
+                    errors.push(`Element ${i + 1} : equipe "${team}" introuvable`);
+                    return;
+                }
+                resolved.push({ ...rest, team_id: teamId });
+            });
+
+            return { resolved, errors };
+        },
         [teams],
     );
 
@@ -342,7 +407,24 @@ export default function StaffPage() {
                         {staffList.length} membre{staffList.length !== 1 ? "s" : ""}
                     </p>
                 </div>
-                <CreateStaffDialog seasonId={seasonId} universeId={universeId} teams={teams} />
+                <div className="flex items-center gap-3">
+                    <ImportJsonDialog<StaffImportValues, StaffImportResolved>
+                        title="Importer du staff"
+                        description="Importez des membres du staff depuis un fichier JSON. Les personnes seront creees automatiquement si elles n'existent pas."
+                        exampleData={staffExampleJson}
+                        fields={staffImportFields}
+                        schema={staffImportSchema}
+                        resolve={resolveStaff}
+                        onImport={(items) => importStaff.mutate({ seasonId, universeId, rows: items })}
+                        isPending={importStaff.isPending}
+                        trigger={
+                            <Button size="md" color="secondary" iconLeading={Upload01}>
+                                Importer
+                            </Button>
+                        }
+                    />
+                    <CreateStaffDialog seasonId={seasonId} universeId={universeId} teams={teams} />
+                </div>
             </div>
 
             <div className="mt-6">
