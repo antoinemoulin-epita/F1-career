@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Globe02, Calendar, ClockRewind, BarChart12, BookOpen01 } from "@untitledui/icons";
 import { SidebarNavigationSimple } from "@/components/application/app-navigation/sidebar-navigation/sidebar-simple";
 import type { NavItemType, NavItemDividerType } from "@/components/application/app-navigation/config";
+import { ThemeToggle } from "@/components/application/theme-toggle/theme-toggle";
 
 const navItems: (NavItemType | NavItemDividerType)[] = [
     { label: "Univers", href: "/universe", icon: Globe02 },
@@ -51,7 +52,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     return (
         <div className="flex min-h-screen">
-            <SidebarNavigationSimple items={navItems} footerItems={[]} activeUrl={pathname} />
+            <SidebarNavigationSimple items={navItems} footerItems={[]} activeUrl={pathname} featureCard={<ThemeToggle />} />
             <main className="flex-1 overflow-auto p-6 lg:p-8">{children}</main>
         </div>
     );

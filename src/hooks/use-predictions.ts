@@ -155,3 +155,20 @@ export function useLockPredictions() {
         },
     });
 }
+
+export function useUnlockPredictions() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ seasonId }: { seasonId: string }) => {
+            const { error } = await supabase
+                .from("seasons")
+                .update({ predictions_locked: false })
+                .eq("id", seasonId);
+            if (error) throw error;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: seasonKeys.detail(variables.seasonId) });
+        },
+    });
+}

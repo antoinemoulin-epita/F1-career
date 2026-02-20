@@ -116,3 +116,37 @@ export function useUpdateCar() {
         },
     });
 }
+
+export function useDeleteCar() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id }: { id: string; seasonId: string }) => {
+            const { error } = await supabase
+                .from("cars")
+                .delete()
+                .eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: carKeys.bySeason(variables.seasonId) });
+        },
+    });
+}
+
+export function useDeleteCars() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ ids }: { ids: string[]; seasonId: string }) => {
+            const { error } = await supabase
+                .from("cars")
+                .delete()
+                .in("id", ids);
+            if (error) throw error;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: carKeys.bySeason(variables.seasonId) });
+        },
+    });
+}

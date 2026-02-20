@@ -4,9 +4,11 @@ import { useCallback, useMemo, useState } from "react";
 import type { Selection } from "react-aria-components";
 import { useParams } from "next/navigation";
 import {
+    AlertCircle,
     Car01,
     Edit01,
     Plus,
+    Trash02,
     Upload01,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
@@ -28,7 +30,7 @@ import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-ic
 import { getSelectedCount } from "@/utils/selection";
 import { CarForm } from "@/components/forms/car-form";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
-import { useCars } from "@/hooks/use-cars";
+import { useCars, useDeleteCar, useDeleteCars } from "@/hooks/use-cars";
 import { useImportCars } from "@/hooks/use-import-cars";
 import { useTeams } from "@/hooks/use-teams";
 import { useEngineSuppliers } from "@/hooks/use-engine-suppliers";
@@ -181,6 +183,155 @@ function EditCarDialog({
     );
 }
 
+// ─── DeleteCarDialog ────────────────────────────────────────────────────
+
+function DeleteCarDialog({
+    seasonId,
+    car,
+    teamName,
+    isOpen,
+    onOpenChange,
+}: {
+    seasonId: string;
+    car: CarWithStats;
+    teamName: string | null;
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const deleteCar = useDeleteCar();
+
+    const handleDelete = () => {
+        deleteCar.mutate(
+            { id: car.id!, seasonId },
+            { onSuccess: () => onOpenChange(false) },
+        );
+    };
+
+    return (
+        <DialogTrigger isOpen={isOpen} onOpenChange={onOpenChange}>
+            <span className="hidden" />
+            <ModalOverlay>
+                <Modal className="max-w-md">
+                    <Dialog>
+                        <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
+                            <div className="mb-5">
+                                <FeaturedIcon
+                                    icon={AlertCircle}
+                                    color="error"
+                                    theme="light"
+                                    size="md"
+                                />
+                            </div>
+                            <h2 className="text-lg font-semibold text-primary">
+                                Supprimer la voiture
+                            </h2>
+                            <p className="mt-1 text-sm text-tertiary">
+                                Etes-vous sur de vouloir supprimer la voiture de{" "}
+                                <span className="font-medium text-primary">
+                                    {teamName ?? "cette equipe"}
+                                </span>
+                                ? Cette action est irreversible.
+                            </p>
+                            <div className="mt-8 flex justify-end gap-3">
+                                <Button
+                                    size="md"
+                                    color="secondary"
+                                    onClick={() => onOpenChange(false)}
+                                >
+                                    Annuler
+                                </Button>
+                                <Button
+                                    size="md"
+                                    color="primary-destructive"
+                                    onClick={handleDelete}
+                                    isLoading={deleteCar.isPending}
+                                >
+                                    Supprimer
+                                </Button>
+                            </div>
+                        </div>
+                    </Dialog>
+                </Modal>
+            </ModalOverlay>
+        </DialogTrigger>
+    );
+}
+
+// ─── BulkDeleteCarsDialog ───────────────────────────────────────────────
+
+function BulkDeleteCarsDialog({
+    seasonId,
+    ids,
+    isOpen,
+    onOpenChange,
+    onSuccess,
+}: {
+    seasonId: string;
+    ids: string[];
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSuccess: () => void;
+}) {
+    const deleteCars = useDeleteCars();
+
+    const handleDelete = () => {
+        deleteCars.mutate(
+            { ids, seasonId },
+            {
+                onSuccess: () => {
+                    onOpenChange(false);
+                    onSuccess();
+                },
+            },
+        );
+    };
+
+    return (
+        <DialogTrigger isOpen={isOpen} onOpenChange={onOpenChange}>
+            <span className="hidden" />
+            <ModalOverlay>
+                <Modal className="max-w-md">
+                    <Dialog>
+                        <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
+                            <div className="mb-5">
+                                <FeaturedIcon
+                                    icon={AlertCircle}
+                                    color="error"
+                                    theme="light"
+                                    size="md"
+                                />
+                            </div>
+                            <h2 className="text-lg font-semibold text-primary">
+                                Supprimer {ids.length} voiture{ids.length > 1 ? "s" : ""}
+                            </h2>
+                            <p className="mt-1 text-sm text-tertiary">
+                                Cette action est irreversible.
+                            </p>
+                            <div className="mt-8 flex justify-end gap-3">
+                                <Button
+                                    size="md"
+                                    color="secondary"
+                                    onClick={() => onOpenChange(false)}
+                                >
+                                    Annuler
+                                </Button>
+                                <Button
+                                    size="md"
+                                    color="primary-destructive"
+                                    onClick={handleDelete}
+                                    isLoading={deleteCars.isPending}
+                                >
+                                    Supprimer
+                                </Button>
+                            </div>
+                        </div>
+                    </Dialog>
+                </Modal>
+            </ModalOverlay>
+        </DialogTrigger>
+    );
+}
+
 // ─── CarRow ─────────────────────────────────────────────────────────────────
 
 function CarRow({
@@ -189,12 +340,14 @@ function CarRow({
     teamName,
     teamColor,
     onEdit,
+    onDelete,
 }: {
     car: CarWithStats;
     position: number;
     teamName: string | null;
     teamColor: string | null;
     onEdit: () => void;
+    onDelete: () => void;
 }) {
     return (
         <Table.Row id={car.id!}>
@@ -244,10 +397,10 @@ function CarRow({
                 <span className="text-sm text-tertiary">{car.speed ?? "—"}</span>
             </Table.Cell>
             <Table.Cell>
-                <span className="text-sm text-tertiary">{car.grip ?? "—"}</span>
+                <span className="text-sm text-tertiary">{car.acceleration ?? "—"}</span>
             </Table.Cell>
             <Table.Cell>
-                <span className="text-sm text-tertiary">{car.acceleration ?? "—"}</span>
+                <span className="text-sm text-tertiary">{car.grip ?? "—"}</span>
             </Table.Cell>
             <Table.Cell>
                 <Dropdown.Root>
@@ -256,10 +409,15 @@ function CarRow({
                         <Dropdown.Menu
                             onAction={(key) => {
                                 if (key === "edit") onEdit();
+                                if (key === "delete") onDelete();
                             }}
                         >
                             <Dropdown.Item id="edit" icon={Edit01}>
                                 <span className="pr-4">Modifier</span>
+                            </Dropdown.Item>
+                            <Dropdown.Separator />
+                            <Dropdown.Item id="delete" icon={Trash02}>
+                                <span className="pr-4">Supprimer</span>
                             </Dropdown.Item>
                         </Dropdown.Menu>
                     </Dropdown.Popover>
@@ -312,6 +470,8 @@ export default function CarsPage() {
     const importCars = useImportCars();
 
     const [editingCar, setEditingCar] = useState<CarWithStats | null>(null);
+    const [deletingCar, setDeletingCar] = useState<CarWithStats | null>(null);
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
     const selectedCount = getSelectedCount(selectedKeys, cars?.length ?? 0);
 
@@ -466,6 +626,16 @@ export default function CarsPage() {
                             <TableSelectionBar
                                 count={selectedCount}
                                 onClearSelection={() => setSelectedKeys(new Set())}
+                                actions={
+                                    <Button
+                                        size="sm"
+                                        color="primary-destructive"
+                                        iconLeading={Trash02}
+                                        onClick={() => setBulkDeleteOpen(true)}
+                                    >
+                                        Supprimer
+                                    </Button>
+                                }
                             />
                         ) : (
                             <TableCard.Header
@@ -496,8 +666,8 @@ export default function CarsPage() {
                                 <Table.Head id="chassis" label="Chassis" allowsSorting />
                                 <Table.Head id="total" label="Total" allowsSorting />
                                 <Table.Head id="vitesse" label="Vitesse" allowsSorting />
-                                <Table.Head id="grip" label="Grip" allowsSorting />
                                 <Table.Head id="accel" label="Accel" allowsSorting />
+                                <Table.Head id="grip" label="Grip" allowsSorting />
                                 <Table.Head label="" />
                             </Table.Header>
                             <Table.Body items={sortedCars}>
@@ -514,6 +684,7 @@ export default function CarsPage() {
                                             teamName={team?.name ?? null}
                                             teamColor={team?.color_primary ?? null}
                                             onEdit={() => setEditingCar(car)}
+                                            onDelete={() => setDeletingCar(car)}
                                         />
                                     );
                                 }}
@@ -543,6 +714,32 @@ export default function CarsPage() {
                     }}
                 />
             )}
+
+            {/* Delete single car */}
+            {deletingCar && (
+                <DeleteCarDialog
+                    seasonId={seasonId}
+                    car={deletingCar}
+                    teamName={deletingCar.team_id ? teamMap.get(deletingCar.team_id)?.name ?? null : null}
+                    isOpen={!!deletingCar}
+                    onOpenChange={(open) => {
+                        if (!open) setDeletingCar(null);
+                    }}
+                />
+            )}
+
+            {/* Bulk delete cars */}
+            <BulkDeleteCarsDialog
+                seasonId={seasonId}
+                ids={
+                    selectedKeys === "all"
+                        ? (cars ?? []).map((c) => c.id!).filter(Boolean)
+                        : [...selectedKeys] as string[]
+                }
+                isOpen={bulkDeleteOpen}
+                onOpenChange={setBulkDeleteOpen}
+                onSuccess={() => setSelectedKeys(new Set())}
+            />
         </div>
     );
 }

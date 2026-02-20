@@ -5,6 +5,7 @@ import type { Selection } from "react-aria-components";
 import { useParams } from "next/navigation";
 import {
     Lock01,
+    LockUnlocked01,
     RefreshCw01,
     Target04,
     Zap,
@@ -32,6 +33,7 @@ import {
     useConstructorPredictions,
     useGeneratePredictions,
     useLockPredictions,
+    useUnlockPredictions,
 } from "@/hooks/use-predictions";
 
 // ─── LockConfirmDialog ──────────────────────────────────────────────────────
@@ -354,6 +356,7 @@ export default function PredictionsPage() {
     const { data: constructorPredictions } = useConstructorPredictions(seasonId);
     const { data: cars } = useCars(seasonId);
     const generatePredictions = useGeneratePredictions();
+    const unlockPredictions = useUnlockPredictions();
 
     const [lockDialogOpen, setLockDialogOpen] = useState(false);
 
@@ -422,14 +425,25 @@ export default function PredictionsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     {isLocked ? (
-                        <BadgeWithIcon
-                            iconLeading={Lock01}
-                            size="lg"
-                            color="success"
-                            type="pill-color"
-                        >
-                            Verrouillees
-                        </BadgeWithIcon>
+                        <>
+                            <BadgeWithIcon
+                                iconLeading={Lock01}
+                                size="lg"
+                                color="success"
+                                type="pill-color"
+                            >
+                                Verrouillees
+                            </BadgeWithIcon>
+                            <Button
+                                size="md"
+                                color="secondary"
+                                iconLeading={LockUnlocked01}
+                                onClick={() => unlockPredictions.mutate({ seasonId })}
+                                isLoading={unlockPredictions.isPending}
+                            >
+                                Deverrouiller
+                            </Button>
+                        </>
                     ) : hasPredictions ? (
                         <>
                             <Button

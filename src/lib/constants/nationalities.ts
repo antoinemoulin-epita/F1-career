@@ -31,6 +31,7 @@ export const nationalityItems = [
     { id: "ISR", label: "Israel" },
     { id: "KOR", label: "Coree du Sud" },
     { id: "RSA", label: "Afrique du Sud" },
+    { id: "VEN", label: "Venezuela" },
 ];
 
 export const validNationalityCodes = nationalityItems.map((n) => n.id);
@@ -42,7 +43,7 @@ const isoAlpha2: Record<string, string> = {
     FIN: "FI", JPN: "JP", MEX: "MX", MON: "MC", NZL: "NZ",
     POL: "PL", RUS: "RU", SUI: "CH", THA: "TH", USA: "US",
     CHN: "CN", IND: "IN", DEN: "DK", BEL: "BE", SWE: "SE",
-    ARG: "AR", COL: "CO", NOR: "NO", POR: "PT", ISR: "IL", KOR: "KR", RSA: "ZA",
+    ARG: "AR", COL: "CO", NOR: "NO", POR: "PT", ISR: "IL", KOR: "KR", RSA: "ZA", VEN: "VE",
 };
 
 /** Convertit un code pays F1 (ex: "GBR") en emoji drapeau (ex: "🇬🇧") */

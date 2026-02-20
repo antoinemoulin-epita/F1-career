@@ -214,11 +214,13 @@ function DeleteNewsDialog({
 function NewsCard({
     news,
     arcName,
+    seasonId,
     onEdit,
     onDelete,
 }: {
     news: News;
     arcName: string | null;
+    seasonId: string;
     onEdit: () => void;
     onDelete: () => void;
 }) {
@@ -226,8 +228,8 @@ function NewsCard({
     const importance = news.importance ?? 0;
 
     return (
-        <div className="flex items-start justify-between gap-3 rounded-xl border border-secondary bg-primary p-4">
-            <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-secondary bg-primary p-4 transition duration-100 ease-linear hover:border-brand hover:bg-primary_hover">
+            <a href={`/season/${seasonId}/news/${news.id}`} className="min-w-0 flex-1">
                 <p className="font-medium text-primary">{news.headline}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <Badge
@@ -262,7 +264,7 @@ function NewsCard({
                         {news.content}
                     </p>
                 )}
-            </div>
+            </a>
             <Dropdown.Root>
                 <Dropdown.DotsButton />
                 <Dropdown.Popover>
@@ -495,6 +497,7 @@ export default function NewsPage() {
                                         <NewsCard
                                             key={n.id}
                                             news={n}
+                                            seasonId={seasonId}
                                             arcName={
                                                 n.arc_id
                                                     ? arcNameMap.get(n.arc_id) ?? null

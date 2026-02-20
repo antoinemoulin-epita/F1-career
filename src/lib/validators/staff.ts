@@ -20,7 +20,7 @@ export const staffSchema = z.object({
     birth_year: z
         .number()
         .int()
-        .min(1950, "Minimum 1950")
+        .min(1850, "Minimum 1850")
         .max(2015, "Maximum 2015")
         .nullable()
         .optional(),

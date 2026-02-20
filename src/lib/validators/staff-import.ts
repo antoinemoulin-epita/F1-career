@@ -10,7 +10,7 @@ export const staffImportSchema = z.object({
     first_name: z.string().min(1, "Le prenom est requis"),
     last_name: z.string().min(1, "Le nom est requis"),
     nationality: z.string().optional().or(z.literal("")),
-    birth_year: z.number().int().min(1900).max(2015).optional(),
+    birth_year: z.number().int().min(1850).max(2015).optional(),
     team: z.string().min(1, "L'equipe est requise"),
     role: z.enum(["principal", "technical_director", "sporting_director", "chief_engineer"]),
     note: starRating,
