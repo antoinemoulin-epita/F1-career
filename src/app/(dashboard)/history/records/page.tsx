@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
@@ -15,6 +14,7 @@ import {
     type AllTimeDriverStat,
     type StreakRecord,
 } from "@/hooks/use-history";
+import { useUniverseId } from "@/hooks/use-universe-id";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -88,15 +88,14 @@ export default function RecordsPage() {
 }
 
 function RecordsPageContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: stats, isLoading: statsLoading, error: statsError } = useAllTimeStats(universeId);
     const { data: raceData, isLoading: raceLoading, error: raceError } = useRaceWinDetails(universeId);
 
     const [activeTab, setActiveTab] = useState<TabId>("season");
 
-    const isLoading = statsLoading || raceLoading;
+    const isLoading = universeLoading || statsLoading || raceLoading;
 
     // ─── Season records ──────────────────────────────────────────────
 
@@ -210,6 +209,10 @@ function RecordsPageContent() {
 
     // ─── Loading / error ─────────────────────────────────────────────
 
+    if (isLoading) {
+        return <PageLoading label="Chargement des records..." />;
+    }
+
     if (!universeId) {
         return (
             <PageError
@@ -219,10 +222,6 @@ function RecordsPageContent() {
                 backLabel="Retour"
             />
         );
-    }
-
-    if (isLoading) {
-        return <PageLoading label="Chargement des records..." />;
     }
 
     if (statsError || raceError) {

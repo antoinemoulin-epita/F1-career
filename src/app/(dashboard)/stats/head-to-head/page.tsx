@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import {
     AlertCircle,
 } from "@untitledui/icons";
@@ -18,6 +17,7 @@ import {
     useTeammateH2H,
     type H2HResult,
 } from "@/hooks/use-stats";
+import { useUniverseId } from "@/hooks/use-universe-id";
 
 // ─── BattleBar ──────────────────────────────────────────────────────────────
 
@@ -78,8 +78,7 @@ export default function HeadToHeadPage() {
 }
 
 function HeadToHeadContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: seasons, isLoading: seasonsLoading } = useCompletedSeasons(universeId);
 
@@ -124,6 +123,10 @@ function HeadToHeadContent() {
 
     // ─── Loading / error ─────────────────────────────────────────────
 
+    if (universeLoading || seasonsLoading) {
+        return <PageLoading label="Chargement des saisons..." />;
+    }
+
     if (!universeId) {
         return (
             <PageError
@@ -132,10 +135,6 @@ function HeadToHeadContent() {
                 backLabel="Retour"
             />
         );
-    }
-
-    if (seasonsLoading) {
-        return <PageLoading label="Chargement des saisons..." />;
     }
 
     return (

@@ -74,13 +74,29 @@ export function useTeamTransfers(teamIdentityId: string) {
             const teamIds = teams.map((t) => t.id);
             const { data, error } = await supabase
                 .from("transfers")
-                .select("*, season:seasons(year), driver:drivers(first_name, last_name, person_id), from_team:teams!transfers_from_team_id_fkey(name, color_primary), to_team:teams!transfers_to_team_id_fkey(name, color_primary)")
+                .select("*, season:seasons(year), driver:drivers(first_name, last_name, person_id), from_team:teams!transfers_from_team_id_fkey(name, color_primary, team_identity_id), to_team:teams!transfers_to_team_id_fkey(name, color_primary, team_identity_id)")
                 .or(`from_team_id.in.(${teamIds.join(",")}),to_team_id.in.(${teamIds.join(",")})`)
                 .order("created_at", { ascending: false });
             if (error) throw error;
             return data;
         },
         enabled: !!teamIdentityId,
+    });
+}
+
+export function useTeamCurrentStaff(teamId: string | null | undefined, seasonId: string | null | undefined) {
+    return useQuery({
+        queryKey: ["team-current-staff", teamId, seasonId] as const,
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("staff_members")
+                .select("person_id, role")
+                .eq("team_id", teamId!)
+                .eq("season_id", seasonId!);
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!teamId && !!seasonId,
     });
 }
 

@@ -1,13 +1,13 @@
 "use client";
 
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useUniverseId } from "@/hooks/use-universe-id";
 
 const supabase = createClient();
 
@@ -20,8 +20,7 @@ export default function TeamsListPage() {
 }
 
 function TeamsListContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: teams, isLoading, error } = useQuery({
         queryKey: ["team-identities", universeId],
@@ -37,6 +36,8 @@ function TeamsListContent() {
         enabled: !!universeId,
     });
 
+    if (universeLoading || isLoading) return <PageLoading label="Chargement des equipes..." />;
+
     if (!universeId) {
         return (
             <PageError
@@ -46,8 +47,6 @@ function TeamsListContent() {
             />
         );
     }
-
-    if (isLoading) return <PageLoading label="Chargement des equipes..." />;
     if (error) return <PageError title="Erreur" backHref="/universe" backLabel="Retour" />;
 
     return (

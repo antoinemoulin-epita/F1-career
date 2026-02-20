@@ -11,6 +11,7 @@ import {
     CheckCircle,
     CloudRaining01,
     DotsGrid,
+    Plus,
     XClose,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
@@ -20,6 +21,7 @@ import { PageLoading, PageError } from "@/components/application/page-states/pag
 import { useRace, useQualifying, useSaveQualifying } from "@/hooks/use-qualifying";
 import { useDrivers } from "@/hooks/use-drivers";
 import { useTeams } from "@/hooks/use-teams";
+import { DriverLink } from "@/components/profile/entity-link";
 import type { DriverWithEffective, TeamWithBudget } from "@/types";
 
 // ─── Rain badge ──────────────────────────────────────────────────────────────
@@ -51,18 +53,28 @@ function DriverChip({
     onClick: () => void;
 }) {
     return (
-        <button
-            type="button"
-            onClick={onClick}
-            className="flex items-center gap-2 rounded-lg border border-secondary bg-primary px-3 py-2 text-sm font-medium text-primary transition duration-100 ease-linear hover:bg-primary_hover"
-        >
+        <div className="flex items-center gap-2 rounded-lg border border-secondary bg-primary px-3 py-2 text-sm font-medium text-primary transition duration-100 ease-linear hover:bg-primary_hover">
             <span
                 className="size-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: teamColor ?? "#94a3b8" }}
                 aria-hidden="true"
             />
-            {driver.full_name}
-        </button>
+            {driver.person_id ? (
+                <DriverLink personId={driver.person_id} className="text-sm font-medium text-primary hover:text-brand-secondary_hover">
+                    {driver.full_name}
+                </DriverLink>
+            ) : (
+                <span>{driver.full_name}</span>
+            )}
+            <button
+                type="button"
+                onClick={onClick}
+                className="ml-auto text-fg-quaternary transition duration-100 ease-linear hover:text-fg-secondary"
+                aria-label={`Placer ${driver.full_name}`}
+            >
+                <Plus className="size-4" />
+            </button>
+        </div>
     );
 }
 
@@ -322,9 +334,15 @@ export default function QualifyingPage() {
                                                     }}
                                                     aria-hidden="true"
                                                 />
-                                                <span className="truncate text-sm font-medium text-primary">
-                                                    {item.driver.full_name}
-                                                </span>
+                                                {item.driver.person_id ? (
+                                                    <DriverLink personId={item.driver.person_id} className="truncate text-sm font-medium text-primary hover:text-brand-secondary_hover">
+                                                        {item.driver.full_name}
+                                                    </DriverLink>
+                                                ) : (
+                                                    <span className="truncate text-sm font-medium text-primary">
+                                                        {item.driver.full_name}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {/* Remove button */}

@@ -45,6 +45,7 @@ import {
     useDriverStandings,
     useConstructorStandings,
 } from "@/hooks/use-standings";
+import { useArcRelatedEntities } from "@/hooks/use-arc-related-entities";
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
 import { useNews } from "@/hooks/use-news";
 import {
@@ -53,6 +54,7 @@ import {
     arcStatusLabels,
     arcStatusColor,
 } from "@/lib/constants/arc-labels";
+import { DriverLink, TeamLink } from "@/components/profile/entity-link";
 import type { SeasonStatus, ArcType, ArcStatus } from "@/types";
 import type { FC } from "react";
 
@@ -230,8 +232,10 @@ type DriverStandingRow = {
     poles: number | null;
     first_name: string | null;
     last_name: string | null;
+    person_id: string | null;
     team_name: string | null;
     team_color: string | null;
+    team_identity_id: string | null;
 };
 
 const driverStandingColumns = {
@@ -323,9 +327,15 @@ function DriverStandingsSection({
                                                 }}
                                             />
                                         )}
-                                        <span className="text-sm font-medium text-primary">
-                                            {row.first_name} {row.last_name}
-                                        </span>
+                                        {row.person_id ? (
+                                            <DriverLink personId={row.person_id}>
+                                                {row.first_name} {row.last_name}
+                                            </DriverLink>
+                                        ) : (
+                                            <span className="text-sm font-medium text-primary">
+                                                {row.first_name} {row.last_name}
+                                            </span>
+                                        )}
                                     </div>
                                 </Table.Cell>
                                 <Table.Cell>
@@ -378,6 +388,7 @@ type ConstructorStandingRow = {
     poles: number | null;
     team_name: string | null;
     team_color: string | null;
+    team_identity_id: string | null;
 };
 
 const constructorStandingColumns = {
@@ -456,20 +467,26 @@ function ConstructorStandingsSection({
                                     </Badge>
                                 </Table.Cell>
                                 <Table.Cell>
-                                    <div className="flex items-center gap-2">
-                                        {row.team_color && (
-                                            <span
-                                                className="size-2.5 shrink-0 rounded-full"
-                                                style={{
-                                                    backgroundColor:
-                                                        row.team_color,
-                                                }}
-                                            />
-                                        )}
-                                        <span className="text-sm font-medium text-primary">
+                                    {row.team_identity_id ? (
+                                        <TeamLink teamIdentityId={row.team_identity_id} color={row.team_color}>
                                             {row.team_name}
-                                        </span>
-                                    </div>
+                                        </TeamLink>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            {row.team_color && (
+                                                <span
+                                                    className="size-2.5 shrink-0 rounded-full"
+                                                    style={{
+                                                        backgroundColor:
+                                                            row.team_color,
+                                                    }}
+                                                />
+                                            )}
+                                            <span className="text-sm font-medium text-primary">
+                                                {row.team_name}
+                                            </span>
+                                        </div>
+                                    )}
                                 </Table.Cell>
                                 <Table.Cell>
                                     <span className="text-sm font-semibold text-primary">
@@ -517,8 +534,26 @@ function NarrativeArcsSection({
         arc_type: ArcType | null;
         status: ArcStatus | null;
         importance: number | null;
+        related_driver_ids: string[] | null;
+        related_team_ids: string[] | null;
     }[];
 }) {
+    // Collect all unique driver/team IDs across all arcs
+    const { allDriverIds, allTeamIds } = useMemo(() => {
+        const driverSet = new Set<string>();
+        const teamSet = new Set<string>();
+        for (const arc of arcs) {
+            for (const id of arc.related_driver_ids ?? []) driverSet.add(id);
+            for (const id of arc.related_team_ids ?? []) teamSet.add(id);
+        }
+        return {
+            allDriverIds: [...driverSet],
+            allTeamIds: [...teamSet],
+        };
+    }, [arcs]);
+
+    const { data: entities } = useArcRelatedEntities(allDriverIds, allTeamIds);
+
     if (arcs.length === 0) return null;
 
     return (
@@ -536,6 +571,12 @@ function NarrativeArcsSection({
                     const typeKey = arc.arc_type ?? "other";
                     const statusKey = arc.status ?? "signal";
                     const importance = arc.importance ?? 0;
+                    const drivers = (arc.related_driver_ids ?? [])
+                        .map((id) => entities?.drivers.get(id))
+                        .filter((d): d is NonNullable<typeof d> => !!d);
+                    const teams = (arc.related_team_ids ?? [])
+                        .map((id) => entities?.teams.get(id))
+                        .filter((t): t is NonNullable<typeof t> => !!t);
 
                     return (
                         <div
@@ -594,6 +635,22 @@ function NarrativeArcsSection({
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Related entities */}
+                            {(drivers.length > 0 || teams.length > 0) && (
+                                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    {drivers.map((d) => (
+                                        <DriverLink key={d.driverId} personId={d.personId} className="text-xs">
+                                            {d.firstName} {d.lastName}
+                                        </DriverLink>
+                                    ))}
+                                    {teams.map((t) => (
+                                        <TeamLink key={t.teamId} teamIdentityId={t.teamIdentityId} color={t.colorPrimary} className="text-xs">
+                                            {t.name}
+                                        </TeamLink>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     );
                 })}

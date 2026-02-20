@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import {
     Plus,
     XClose,
@@ -12,6 +11,7 @@ import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { StatsLineChart, CHART_COLORS } from "@/components/charts/line-chart";
 import { useAllTimeStats, type AllTimeDriverStat } from "@/hooks/use-history";
+import { useUniverseId } from "@/hooks/use-universe-id";
 
 const MAX_DRIVERS = 4;
 
@@ -26,8 +26,7 @@ export default function ComparePage() {
 }
 
 function CompareContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: stats, isLoading, error } = useAllTimeStats(universeId);
 
@@ -121,6 +120,10 @@ function CompareContent() {
 
     // ─── Loading / error ─────────────────────────────────────────────
 
+    if (universeLoading || isLoading) {
+        return <PageLoading label="Chargement des statistiques..." />;
+    }
+
     if (!universeId) {
         return (
             <PageError
@@ -129,10 +132,6 @@ function CompareContent() {
                 backLabel="Retour"
             />
         );
-    }
-
-    if (isLoading) {
-        return <PageLoading label="Chargement des statistiques..." />;
     }
 
     if (error) {

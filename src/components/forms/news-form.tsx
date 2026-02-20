@@ -8,7 +8,7 @@ import type { Key } from "react-aria-components";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { TextArea } from "@/components/base/textarea/textarea";
-import { Select } from "@/components/base/select/select";
+import { Select, type SelectItemType } from "@/components/base/select/select";
 import { MultiSelect } from "@/components/base/select/multi-select";
 import { useCreateNews, useUpdateNews } from "@/hooks/use-news";
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
@@ -87,8 +87,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 // ─── MentionMultiSelect ────────────────────────────────────────────────────
-
-type SelectItemType = { id: string; label: string };
 
 function MentionMultiSelect({
     label,

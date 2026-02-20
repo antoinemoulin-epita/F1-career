@@ -10,7 +10,25 @@ const supabase = createClient();
 export const newsKeys = {
     all: ["news"] as const,
     bySeason: (seasonId: string) => ["news", { seasonId }] as const,
+    byArc: (arcId: string) => ["news", "by-arc", { arcId }] as const,
 };
+
+/** All news linked to a given narrative arc, with season info. */
+export function useNewsByArc(arcId: string) {
+    return useQuery({
+        queryKey: newsKeys.byArc(arcId),
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("news")
+                .select("*, season:seasons(id, year)")
+                .eq("arc_id", arcId)
+                .order("created_at", { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!arcId,
+    });
+}
 
 export function useNews(seasonId: string) {
     return useQuery({

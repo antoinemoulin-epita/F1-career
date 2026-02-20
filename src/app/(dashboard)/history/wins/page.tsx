@@ -2,7 +2,6 @@
 
 import { Suspense, useMemo, useState } from "react";
 import type { Selection } from "react-aria-components";
-import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/base/badges/badges";
 import { Select } from "@/components/base/select/select";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
@@ -11,6 +10,7 @@ import { Tabs } from "@/components/application/tabs/tabs";
 import { Table, TableCard } from "@/components/application/table/table";
 import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
 import { useAllTimeStats, type AllTimeDriverStat, type AllTimeTeamStat } from "@/hooks/use-history";
+import { useUniverseId } from "@/hooks/use-universe-id";
 import { getSelectedCount } from "@/utils/selection";
 import { useTableSort } from "@/hooks/use-table-sort";
 
@@ -263,8 +263,7 @@ export default function WinsPage() {
 }
 
 function WinsPageContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: stats, isLoading, error } = useAllTimeStats(universeId);
 
@@ -311,6 +310,10 @@ function WinsPageContent() {
 
     // ─── Loading / error ─────────────────────────────────────────────
 
+    if (universeLoading || isLoading) {
+        return <PageLoading label="Chargement des statistiques..." />;
+    }
+
     if (!universeId) {
         return (
             <PageError
@@ -320,10 +323,6 @@ function WinsPageContent() {
                 backLabel="Retour"
             />
         );
-    }
-
-    if (isLoading) {
-        return <PageLoading label="Chargement des statistiques..." />;
     }
 
     if (error || !stats) {
@@ -363,15 +362,15 @@ function WinsPageContent() {
                 selectedKey={activeTab}
                 onSelectionChange={(key) => setActiveTab(key as TabId)}
             >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <Tabs.List
-                        type="underline"
-                        size="sm"
-                        items={TABS.map((t) => ({ id: t.id, label: t.label }))}
-                    />
+                <Tabs.List
+                    type="underline"
+                    size="sm"
+                    items={TABS.map((t) => ({ id: t.id, label: t.label }))}
+                />
 
-                    {/* Filter (drivers tab only) */}
-                    {activeTab === "drivers" && (
+                {/* Drivers tab */}
+                <Tabs.Panel id="drivers" className="mt-6">
+                    <div className="mb-4 flex justify-end">
                         <div className="w-40">
                             <Select
                                 placeholder="Filtre"
@@ -387,11 +386,7 @@ function WinsPageContent() {
                                 )}
                             </Select>
                         </div>
-                    )}
-                </div>
-
-                {/* Drivers tab */}
-                <Tabs.Panel id="drivers" className="mt-6">
+                    </div>
                     {filteredDrivers.length === 0 ? (
                         <p className="py-8 text-center text-sm text-tertiary">
                             Aucun pilote trouve.

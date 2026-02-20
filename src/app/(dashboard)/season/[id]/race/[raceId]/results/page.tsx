@@ -34,6 +34,7 @@ import {
     type DnfInfo,
 } from "@/hooks/use-race-results";
 import { buildPointsMap, calculateDriverPoints } from "@/lib/calculations/points";
+import { DriverLink } from "@/components/profile/entity-link";
 import { cx } from "@/utils/cx";
 import type { DriverWithEffective, TeamWithBudget, WeatherType, ResultStatus } from "@/types";
 
@@ -94,9 +95,15 @@ function DnfRow({
                     style={{ backgroundColor: teamColor ?? "#94a3b8" }}
                     aria-hidden="true"
                 />
-                <span className="truncate text-sm font-medium text-primary">
-                    {driver.full_name}
-                </span>
+                {driver.person_id ? (
+                    <DriverLink personId={driver.person_id} className="truncate">
+                        {driver.full_name}
+                    </DriverLink>
+                ) : (
+                    <span className="truncate text-sm font-medium text-primary">
+                        {driver.full_name}
+                    </span>
+                )}
             </div>
 
             {/* DNF type select */}
@@ -580,9 +587,15 @@ export default function RaceResultsPage() {
                                                     }}
                                                     aria-hidden="true"
                                                 />
-                                                <span className="truncate text-sm font-medium text-primary">
-                                                    {item.driver.full_name}
-                                                </span>
+                                                {item.driver.person_id ? (
+                                                    <DriverLink personId={item.driver.person_id} className="truncate">
+                                                        {item.driver.full_name}
+                                                    </DriverLink>
+                                                ) : (
+                                                    <span className="truncate text-sm font-medium text-primary">
+                                                        {item.driver.full_name}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {/* Points badge */}

@@ -1,12 +1,13 @@
 "use client";
 
 import { Badge } from "@/components/base/badges/badges";
+import { TeamLink } from "./entity-link";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface TimelineEntry {
     year: number;
-    role: string;
+    role: string | null;
     teamName: string;
     teamColor?: string | null;
     detail?: string;
@@ -51,12 +52,20 @@ export function CareerTimeline({ title, entries }: CareerTimelineProps) {
                                 <span className="text-sm font-semibold text-primary">
                                     {entry.year}
                                 </span>
-                                <Badge size="sm" color="gray" type="pill-color">
-                                    {entry.role}
-                                </Badge>
+                                {entry.role && (
+                                    <Badge size="sm" color="gray" type="pill-color">
+                                        {entry.role}
+                                    </Badge>
+                                )}
                             </div>
                             <p className="mt-0.5 text-sm text-secondary">
-                                {entry.teamName}
+                                {entry.teamIdentityId ? (
+                                    <TeamLink teamIdentityId={entry.teamIdentityId} color={entry.teamColor}>
+                                        {entry.teamName}
+                                    </TeamLink>
+                                ) : (
+                                    entry.teamName
+                                )}
                             </p>
                             {entry.detail && (
                                 <p className="mt-0.5 text-xs text-tertiary">

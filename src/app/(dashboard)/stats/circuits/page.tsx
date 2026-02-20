@@ -1,12 +1,12 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { useCircuitStats, type CircuitStat } from "@/hooks/use-stats";
+import { useUniverseId } from "@/hooks/use-universe-id";
 
 // ─── Weather badge ──────────────────────────────────────────────────────────
 
@@ -51,8 +51,7 @@ export default function CircuitsStatsPage() {
 }
 
 function CircuitsStatsContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: circuits, isLoading, error } = useCircuitStats(universeId);
 
@@ -62,6 +61,10 @@ function CircuitsStatsContent() {
 
     // ─── Loading / error ─────────────────────────────────────────────
 
+    if (universeLoading || isLoading) {
+        return <PageLoading label="Chargement des circuits..." />;
+    }
+
     if (!universeId) {
         return (
             <PageError
@@ -70,10 +73,6 @@ function CircuitsStatsContent() {
                 backLabel="Retour"
             />
         );
-    }
-
-    if (isLoading) {
-        return <PageLoading label="Chargement des circuits..." />;
     }
 
     if (error) {

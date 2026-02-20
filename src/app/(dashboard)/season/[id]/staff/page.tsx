@@ -25,6 +25,7 @@ import { PageLoading, PageError } from "@/components/application/page-states/pag
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { StaffForm } from "@/components/forms/staff-form";
+import { StaffLink, TeamLink } from "@/components/profile/entity-link";
 import { useSeason } from "@/hooks/use-seasons";
 import { useTeams } from "@/hooks/use-teams";
 import { useStaff, useDeleteStaff, usePersonIdentities } from "@/hooks/use-staff";
@@ -241,7 +242,13 @@ function StaffCard({
         <div className="flex items-center justify-between rounded-lg border border-secondary p-3">
             <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-primary">{personName}</p>
+                    <p className="text-sm font-medium text-primary">
+                        {staff.person?.id ? (
+                            <StaffLink personId={staff.person.id}>{personName}</StaffLink>
+                        ) : (
+                            personName
+                        )}
+                    </p>
                     {staff.note != null && (
                         <StarRating value={staff.note} size="sm" />
                     )}
@@ -338,6 +345,16 @@ export default function StaffPage() {
     const teamNameMap = useMemo(
         () => new Map(teams.map((t) => [t.id, t.name])),
         [teams],
+    );
+
+    const teamIdentityMap = useMemo(
+        () => new Map((teamsRaw ?? []).map((t) => [t.id, t.team_identity_id])),
+        [teamsRaw],
+    );
+
+    const teamColorMap = useMemo(
+        () => new Map((teamsRaw ?? []).map((t) => [t.id, t.color_primary])),
+        [teamsRaw],
     );
 
     const resolveStaff = useCallback(
@@ -451,10 +468,21 @@ export default function StaffPage() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {[...staffByTeam.entries()].map(([teamId, members]) => (
+                        {[...staffByTeam.entries()].map(([teamId, members]) => {
+                            const teamName = teamNameMap.get(teamId) ?? teamId;
+                            const teamIdentityId = teamIdentityMap.get(teamId);
+                            const teamColor = teamColorMap.get(teamId);
+
+                            return (
                             <div key={teamId}>
                                 <h2 className="mb-3 text-md font-semibold text-primary">
-                                    {teamNameMap.get(teamId) ?? teamId}
+                                    {teamIdentityId ? (
+                                        <TeamLink teamIdentityId={teamIdentityId} color={teamColor}>
+                                            {teamName}
+                                        </TeamLink>
+                                    ) : (
+                                        teamName
+                                    )}
                                 </h2>
                                 <div className="space-y-2">
                                     {members.map((s) => (
@@ -468,7 +496,8 @@ export default function StaffPage() {
                                     ))}
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

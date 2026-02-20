@@ -2,7 +2,6 @@
 
 import { Suspense, useMemo, useState } from "react";
 import type { Selection } from "react-aria-components";
-import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/base/badges/badges";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
@@ -10,6 +9,7 @@ import { Tabs } from "@/components/application/tabs/tabs";
 import { Table, TableCard } from "@/components/application/table/table";
 import { TableSelectionBar } from "@/components/application/table/table-selection-bar";
 import { useChampions } from "@/hooks/use-history";
+import { useUniverseId } from "@/hooks/use-universe-id";
 import { getSelectedCount } from "@/utils/selection";
 import { useTableSort } from "@/hooks/use-table-sort";
 
@@ -310,8 +310,7 @@ export default function ChampionsPage() {
 }
 
 function ChampionsPageContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: champions, isLoading, error } = useChampions(universeId);
 
@@ -325,9 +324,9 @@ function ChampionsPageContent() {
         for (const c of champions) {
             const name = c.champion_driver_name;
             if (!name) continue;
-            const existing = map.get(name) ?? { name, titles: 0, years: [] };
+            const existing = map.get(name) ?? { name, titles: 0, years: [] as number[] };
             existing.titles += 1;
-            existing.years.push(c.year);
+            if (c.year != null) existing.years.push(c.year);
             map.set(name, existing);
         }
         return [...map.values()]
@@ -342,9 +341,9 @@ function ChampionsPageContent() {
         for (const c of champions) {
             const name = c.champion_team_name;
             if (!name) continue;
-            const existing = map.get(name) ?? { name, titles: 0, years: [] };
+            const existing = map.get(name) ?? { name, titles: 0, years: [] as number[] };
             existing.titles += 1;
-            existing.years.push(c.year);
+            if (c.year != null) existing.years.push(c.year);
             map.set(name, existing);
         }
         return [...map.values()]
@@ -352,6 +351,10 @@ function ChampionsPageContent() {
     }, [champions]);
 
     // ─── Loading ─────────────────────────────────────────────────────
+
+    if (universeLoading || isLoading) {
+        return <PageLoading label="Chargement des champions..." />;
+    }
 
     if (!universeId) {
         return (
@@ -362,10 +365,6 @@ function ChampionsPageContent() {
                 backLabel="Retour"
             />
         );
-    }
-
-    if (isLoading) {
-        return <PageLoading label="Chargement des champions..." />;
     }
 
     if (error || !champions) {

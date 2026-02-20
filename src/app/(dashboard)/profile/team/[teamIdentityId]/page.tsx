@@ -22,6 +22,7 @@ import {
     useTeamDrivers,
     useTeamTransfers,
     useTeamArcs,
+    useTeamCurrentStaff,
 } from "@/hooks/use-team-profile";
 import { useNewsByEntity } from "@/hooks/use-news-mentions";
 import { newsTypeLabels, newsTypeBadgeColor } from "@/lib/constants/arc-labels";
@@ -48,6 +49,21 @@ function TeamProfileContent() {
     const { data: transfers } = useTeamTransfers(teamIdentityId);
     const { data: arcs } = useTeamArcs(teamIdentityId);
     const { data: entityNews } = useNewsByEntity("team", teamIdentityId);
+    const { data: currentStaff } = useTeamCurrentStaff(
+        profile?.current_team_id,
+        profile?.current_season_id,
+    );
+
+    // Staff person_id lookup by role
+    const staffByRole = useMemo(() => {
+        const map: Record<string, string> = {};
+        if (currentStaff) {
+            for (const s of currentStaff) {
+                if (s.person_id) map[s.role] = s.person_id;
+            }
+        }
+        return map;
+    }, [currentStaff]);
 
     // Chart data from history
     const chartData = useMemo(() => {
@@ -192,7 +208,13 @@ function TeamProfileContent() {
                                 <h2 className="mb-3 text-sm font-semibold text-secondary">Motoriste</h2>
                                 <div className="rounded-xl border border-secondary bg-primary p-4">
                                     <p className="text-sm font-medium text-primary">
-                                        {profile.engine_name ?? "—"}
+                                        {profile.engine_supplier_id ? (
+                                            <EngineSupplierLink id={profile.engine_supplier_id}>
+                                                {profile.engine_name ?? "—"}
+                                            </EngineSupplierLink>
+                                        ) : (
+                                            profile.engine_name ?? "—"
+                                        )}
                                     </p>
                                     {profile.engine_note != null && (
                                         <p className="mt-1 text-xs text-tertiary">
@@ -206,13 +228,29 @@ function TeamProfileContent() {
                                     {profile.team_principal && (
                                         <div className="rounded-xl border border-secondary bg-primary p-3">
                                             <p className="text-xs text-tertiary">Team Principal</p>
-                                            <p className="text-sm font-medium text-primary">{profile.team_principal}</p>
+                                            <p className="text-sm font-medium text-primary">
+                                                {staffByRole.principal ? (
+                                                    <StaffLink personId={staffByRole.principal}>
+                                                        {profile.team_principal}
+                                                    </StaffLink>
+                                                ) : (
+                                                    profile.team_principal
+                                                )}
+                                            </p>
                                         </div>
                                     )}
                                     {profile.technical_director && (
                                         <div className="rounded-xl border border-secondary bg-primary p-3">
                                             <p className="text-xs text-tertiary">Directeur Technique</p>
-                                            <p className="text-sm font-medium text-primary">{profile.technical_director}</p>
+                                            <p className="text-sm font-medium text-primary">
+                                                {staffByRole.technical_director ? (
+                                                    <StaffLink personId={staffByRole.technical_director}>
+                                                        {profile.technical_director}
+                                                    </StaffLink>
+                                                ) : (
+                                                    profile.technical_director
+                                                )}
+                                            </p>
                                         </div>
                                     )}
                                 </div>

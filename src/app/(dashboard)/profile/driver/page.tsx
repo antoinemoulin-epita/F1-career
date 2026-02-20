@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/base/badges/badges";
@@ -10,6 +9,7 @@ import { PageLoading, PageError } from "@/components/application/page-states/pag
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useUniverseId } from "@/hooks/use-universe-id";
 
 const supabase = createClient();
 
@@ -22,8 +22,7 @@ export default function DriversListPage() {
 }
 
 function DriversListContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: persons, isLoading, error } = useQuery({
         queryKey: ["person-identities", "drivers", universeId],
@@ -40,6 +39,8 @@ function DriversListContent() {
         enabled: !!universeId,
     });
 
+    if (universeLoading || isLoading) return <PageLoading label="Chargement des pilotes..." />;
+
     if (!universeId) {
         return (
             <PageError
@@ -50,8 +51,6 @@ function DriversListContent() {
             />
         );
     }
-
-    if (isLoading) return <PageLoading label="Chargement des pilotes..." />;
     if (error) return <PageError title="Erreur" backHref="/universe" backLabel="Retour" />;
 
     return (

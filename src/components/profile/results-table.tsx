@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/base/badges/badges";
 import { Select } from "@/components/base/select/select";
 import { Table, TableCard } from "@/components/application/table/table";
+import { TeamLink } from "./entity-link";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,7 @@ export interface RaceResultRow {
     result_status?: string | null;
     team_name?: string | null;
     team_color?: string | null;
+    team_identity_id?: string | null;
 }
 
 interface ResultsTableProps {
@@ -145,7 +147,13 @@ export function ResultsTable({ title, results, showTeam = false }: ResultsTableP
                                                     style={{ backgroundColor: r.team_color }}
                                                 />
                                             )}
-                                            <span className="text-tertiary">{r.team_name ?? "—"}</span>
+                                            {r.team_identity_id ? (
+                                                <TeamLink teamIdentityId={r.team_identity_id} color={r.team_color}>
+                                                    {r.team_name ?? "—"}
+                                                </TeamLink>
+                                            ) : (
+                                                <span className="text-tertiary">{r.team_name ?? "—"}</span>
+                                            )}
                                         </div>
                                     </td>
                                 )}

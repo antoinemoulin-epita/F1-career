@@ -140,7 +140,7 @@ export function useDraftStaffPoolEntry() {
                 .from("person_identities")
                 .insert({
                     universe_id: universeId,
-                    first_name: entry.first_name,
+                    first_name: entry.first_name ?? "",
                     last_name: entry.last_name,
                     nationality: entry.nationality,
                     birth_year: entry.birth_year,

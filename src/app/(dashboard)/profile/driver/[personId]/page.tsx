@@ -74,7 +74,7 @@ function DriverProfileContent() {
         if (!seasons) return [];
         return seasons.map((s) => ({
             year: s.year ?? 0,
-            role: s.is_rookie ? "Rookie" : s.is_first_driver ? "Pilote #1" : "Pilote #2",
+            role: s.is_rookie ? "Rookie" : s.is_first_driver === true ? "Pilote #1" : s.is_first_driver === false ? "Pilote #2" : null,
             teamName: s.team_name ?? "Sans equipe",
             teamColor: s.team_color,
             detail: s.championship_position ? `P${s.championship_position} - ${s.season_points ?? 0} pts` : undefined,
@@ -99,6 +99,7 @@ function DriverProfileContent() {
             result_status: r.result_status,
             team_name: r.team_name,
             team_color: r.team_color,
+            team_identity_id: r.team_identity_id,
         }));
     }, [raceHistory]);
 
@@ -304,17 +305,23 @@ function DriverProfileContent() {
                                                         {s.note ?? "—"}
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <div className="flex items-center gap-2">
-                                                            {s.team_color && (
-                                                                <span
-                                                                    className="size-2.5 rounded-full"
-                                                                    style={{ backgroundColor: s.team_color }}
-                                                                />
-                                                            )}
-                                                            <span className="text-tertiary">
+                                                        {s.team_identity_id ? (
+                                                            <TeamLink teamIdentityId={s.team_identity_id} color={s.team_color}>
                                                                 {s.team_name ?? "—"}
-                                                            </span>
-                                                        </div>
+                                                            </TeamLink>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2">
+                                                                {s.team_color && (
+                                                                    <span
+                                                                        className="size-2.5 rounded-full"
+                                                                        style={{ backgroundColor: s.team_color }}
+                                                                    />
+                                                                )}
+                                                                <span className="text-tertiary">
+                                                                    {s.team_name ?? "—"}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}

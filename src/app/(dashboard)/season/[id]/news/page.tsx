@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useMemo } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
@@ -211,20 +212,41 @@ function DeleteNewsDialog({
     );
 }
 
+// ─── Mention type ───────────────────────────────────────────────────────────
+
+interface MentionInfo {
+    name: string;
+    entityType: string;
+    entityId: string;
+}
+
+function getMentionHref(mention: MentionInfo): string {
+    switch (mention.entityType) {
+        case "driver":
+            return `/profile/driver/${mention.entityId}`;
+        case "team":
+            return `/profile/team/${mention.entityId}`;
+        case "staff":
+            return `/profile/staff/${mention.entityId}`;
+        default:
+            return "#";
+    }
+}
+
 // ─── NewsCard ───────────────────────────────────────────────────────────────
 
 function NewsCard({
     news,
     arcName,
     seasonId,
-    mentionNames,
+    mentions,
     onEdit,
     onDelete,
 }: {
     news: News;
     arcName: string | null;
     seasonId: string;
-    mentionNames: string[];
+    mentions: MentionInfo[];
     onEdit: () => void;
     onDelete: () => void;
 }) {
@@ -262,10 +284,17 @@ function NewsCard({
                             {arcName}
                         </Badge>
                     )}
-                    {mentionNames.map((name) => (
-                        <Badge key={name} size="sm" color="blue" type="pill-color">
-                            {name}
-                        </Badge>
+                    {mentions.map((mention) => (
+                        <Link
+                            key={`${mention.entityType}-${mention.entityId}`}
+                            href={getMentionHref(mention)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="transition duration-100 ease-linear hover:opacity-80"
+                        >
+                            <Badge size="sm" color="blue" type="pill-color">
+                                {mention.name}
+                            </Badge>
+                        </Link>
                     ))}
                 </div>
                 {news.content && (
@@ -360,12 +389,16 @@ export default function NewsPage() {
 
     // Build mentions-per-news map
     const mentionsPerNews = useMemo(() => {
-        const map = new Map<string, string[]>();
+        const map = new Map<string, MentionInfo[]>();
         (allMentions ?? []).forEach((m) => {
             const name = entityNameMap.get(m.entity_id);
             if (!name) return;
             if (!map.has(m.news_id)) map.set(m.news_id, []);
-            map.get(m.news_id)!.push(name);
+            map.get(m.news_id)!.push({
+                name,
+                entityType: m.entity_type,
+                entityId: m.entity_id,
+            });
         });
         return map;
     }, [allMentions, entityNameMap]);
@@ -542,7 +575,7 @@ export default function NewsPage() {
                                                     ? arcNameMap.get(n.arc_id) ?? null
                                                     : null
                                             }
-                                            mentionNames={mentionsPerNews.get(n.id) ?? []}
+                                            mentions={mentionsPerNews.get(n.id) ?? []}
                                             onEdit={() => setEditingNews(n)}
                                             onDelete={() => setDeletingNews(n)}
                                         />

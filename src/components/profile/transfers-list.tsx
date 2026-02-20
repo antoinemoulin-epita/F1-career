@@ -12,8 +12,8 @@ interface TransferItem {
     contract_years?: number | null;
     is_first_driver?: boolean | null;
     driver?: { first_name: string | null; last_name: string | null; person_id: string | null } | null;
-    from_team?: { name: string | null; color_primary?: string | null } | null;
-    to_team?: { name: string | null; color_primary?: string | null } | null;
+    from_team?: { name: string | null; color_primary?: string | null; team_identity_id?: string | null } | null;
+    to_team?: { name: string | null; color_primary?: string | null; team_identity_id?: string | null } | null;
     season?: { year: number } | null;
 }
 
@@ -81,29 +81,41 @@ export function TransfersList({ title, transfers, hideDriver }: TransfersListPro
                             {/* From -> To */}
                             <div className="flex items-center gap-2 text-sm text-tertiary">
                                 {t.from_team?.name ? (
-                                    <span className="flex items-center gap-1.5">
-                                        {t.from_team.color_primary && (
-                                            <span
-                                                className="size-2.5 rounded-full"
-                                                style={{ backgroundColor: t.from_team.color_primary }}
-                                            />
-                                        )}
-                                        {t.from_team.name}
-                                    </span>
+                                    t.from_team.team_identity_id ? (
+                                        <TeamLink teamIdentityId={t.from_team.team_identity_id} color={t.from_team.color_primary}>
+                                            {t.from_team.name}
+                                        </TeamLink>
+                                    ) : (
+                                        <span className="flex items-center gap-1.5">
+                                            {t.from_team.color_primary && (
+                                                <span
+                                                    className="size-2.5 rounded-full"
+                                                    style={{ backgroundColor: t.from_team.color_primary }}
+                                                />
+                                            )}
+                                            {t.from_team.name}
+                                        </span>
+                                    )
                                 ) : (
                                     <span>—</span>
                                 )}
                                 <span className="text-quaternary">→</span>
                                 {t.to_team?.name ? (
-                                    <span className="flex items-center gap-1.5">
-                                        {t.to_team.color_primary && (
-                                            <span
-                                                className="size-2.5 rounded-full"
-                                                style={{ backgroundColor: t.to_team.color_primary }}
-                                            />
-                                        )}
-                                        {t.to_team.name}
-                                    </span>
+                                    t.to_team.team_identity_id ? (
+                                        <TeamLink teamIdentityId={t.to_team.team_identity_id} color={t.to_team.color_primary}>
+                                            {t.to_team.name}
+                                        </TeamLink>
+                                    ) : (
+                                        <span className="flex items-center gap-1.5">
+                                            {t.to_team.color_primary && (
+                                                <span
+                                                    className="size-2.5 rounded-full"
+                                                    style={{ backgroundColor: t.to_team.color_primary }}
+                                                />
+                                            )}
+                                            {t.to_team.name}
+                                        </span>
+                                    )
                                 ) : (
                                     <span>—</span>
                                 )}

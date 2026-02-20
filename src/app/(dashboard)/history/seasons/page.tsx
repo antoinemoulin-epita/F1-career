@@ -2,7 +2,6 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
     ChevronRight,
     Trophy01,
@@ -12,6 +11,7 @@ import { Button } from "@/components/base/buttons/button";
 import { Breadcrumbs } from "@/components/application/breadcrumbs/breadcrumbs";
 import { PageLoading, PageError } from "@/components/application/page-states/page-states";
 import { useChampions } from "@/hooks/use-history";
+import { useUniverseId } from "@/hooks/use-universe-id";
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
@@ -24,12 +24,15 @@ export default function SeasonsListPage() {
 }
 
 function SeasonsListContent() {
-    const searchParams = useSearchParams();
-    const universeId = searchParams.get("u") ?? "";
+    const { universeId, isLoading: universeLoading } = useUniverseId();
 
     const { data: champions, isLoading, error } = useChampions(universeId);
 
-    // ─── No universe ──────────────────────────────────────────────────
+    // ─── Loading / error ──────────────────────────────────────────────
+
+    if (universeLoading || isLoading) {
+        return <PageLoading label="Chargement des saisons..." />;
+    }
 
     if (!universeId) {
         return (
@@ -40,10 +43,6 @@ function SeasonsListContent() {
                 backLabel="Retour"
             />
         );
-    }
-
-    if (isLoading) {
-        return <PageLoading label="Chargement des saisons..." />;
     }
 
     if (error || !champions) {

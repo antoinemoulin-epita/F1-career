@@ -38,7 +38,7 @@ import { useTableSort } from "@/hooks/use-table-sort";
 import { nationalityToFlag } from "@/lib/constants/nationalities";
 import { driverImportSchema, type DriverImportValues } from "@/lib/validators/driver-import";
 import type { DriverFormValues } from "@/lib/validators";
-import { DriverLink } from "@/components/profile/entity-link";
+import { DriverLink, TeamLink } from "@/components/profile/entity-link";
 import type { Driver, DriverWithEffective, TeamWithBudget } from "@/types";
 
 // ─── CreateDriverDialog ─────────────────────────────────────────────────────
@@ -229,12 +229,14 @@ function DriverRow({
     driver,
     teamName,
     teamColor,
+    teamIdentityId,
     onEdit,
     onDelete,
 }: {
     driver: DriverWithEffective;
     teamName: string | null;
     teamColor: string | null;
+    teamIdentityId: string | null;
     onEdit: () => void;
     onDelete: () => void;
 }) {
@@ -287,34 +289,52 @@ function DriverRow({
                             Retraite
                         </Badge>
                     )}
-                    {driver.is_first_driver && (
-                        <Badge size="sm" color="gray" type="pill-color">
-                            1er pilote
-                        </Badge>
-                    )}
-                    {driver.contract_years_remaining === 1 && (
-                        <Badge size="sm" color="warning" type="pill-color">
-                            Dernier an
-                        </Badge>
-                    )}
-                    {(driver.contract_years_remaining === 0 || driver.contract_years_remaining == null) && (
-                        <Badge size="sm" color="error" type="pill-color">
-                            Agent libre
-                        </Badge>
-                    )}
                 </div>
             </Table.Cell>
             <Table.Cell>
                 <div className="flex items-center gap-2">
-                    {teamColor && (
-                        <span
-                            className="size-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: teamColor }}
-                        />
+                    {teamName && teamIdentityId ? (
+                        <TeamLink teamIdentityId={teamIdentityId} color={teamColor}>
+                            {teamName}
+                        </TeamLink>
+                    ) : (
+                        <>
+                            {teamColor && (
+                                <span
+                                    className="size-2.5 shrink-0 rounded-full"
+                                    style={{ backgroundColor: teamColor }}
+                                />
+                            )}
+                            <span className="text-sm text-tertiary">
+                                {teamName ?? "—"}
+                            </span>
+                        </>
                     )}
-                    <span className="text-sm text-tertiary">
-                        {teamName ?? "—"}
-                    </span>
+                </div>
+            </Table.Cell>
+            <Table.Cell>
+                <div className="flex items-center gap-1.5">
+                    {driver.team_id && driver.is_first_driver === true && (
+                        <Badge size="sm" color="brand" type="pill-color">
+                            1er
+                        </Badge>
+                    )}
+                    {driver.team_id && driver.is_first_driver === false && (
+                        <Badge size="sm" color="gray" type="pill-color">
+                            2e
+                        </Badge>
+                    )}
+                    {driver.contract_years_remaining != null && driver.contract_years_remaining > 0 ? (
+                        <span className="text-sm text-tertiary">
+                            {driver.contract_years_remaining} an{driver.contract_years_remaining > 1 ? "s" : ""}
+                        </span>
+                    ) : driver.contract_years_remaining === 0 ? (
+                        <Badge size="sm" color="error" type="pill-color">
+                            Agent libre
+                        </Badge>
+                    ) : (
+                        <span className="text-sm text-tertiary">—</span>
+                    )}
                 </div>
             </Table.Cell>
             <Table.Cell>
@@ -379,6 +399,8 @@ const driverExampleJson = JSON.stringify(
             potential_max: 10,
             team: "Red Bull Racing",
             is_rookie: false,
+            is_first_driver: true,
+            contract_years_remaining: 2,
             world_titles: 4,
             career_wins: 63,
         },
@@ -402,6 +424,8 @@ function buildDriverFields(teamNames: string[]) {
         { name: "team", required: false, description: teamDesc },
         { name: "is_rookie", required: false, description: "true/false" },
         { name: "is_retiring", required: false, description: "true/false" },
+        { name: "is_first_driver", required: false, description: "true = 1er pilote, false = 2e pilote" },
+        { name: "contract_years_remaining", required: false, description: "Annees de contrat restantes (0 = agent libre)" },
         { name: "world_titles", required: false, description: "Nombre de titres mondiaux" },
         { name: "career_wins", required: false, description: "Nombre de victoires en carriere" },
         { name: "career_points", required: false, description: "Points en carriere" },
@@ -437,6 +461,7 @@ export default function DriversPage() {
             pilote: (d: DriverWithEffective) => d.full_name ?? "",
             equipe: (d: DriverWithEffective) =>
                 d.team_id ? teamMap.get(d.team_id)?.name ?? "" : "",
+            contrat: (d: DriverWithEffective) => d.contract_years_remaining ?? -1,
             note: (d: DriverWithEffective) => d.note,
             potentiel: (d: DriverWithEffective) =>
                 d.potential_revealed ? d.potential_final : d.potential_max,
@@ -592,6 +617,7 @@ export default function DriversPage() {
                             <Table.Header>
                                 <Table.Head id="pilote" label="Pilote" isRowHeader allowsSorting />
                                 <Table.Head id="equipe" label="Equipe" allowsSorting />
+                                <Table.Head id="contrat" label="Contrat" allowsSorting />
                                 <Table.Head id="note" label="Note" allowsSorting />
                                 <Table.Head id="potentiel" label="Potentiel" allowsSorting />
                                 <Table.Head id="accl" label="Accl." allowsSorting />
@@ -609,6 +635,7 @@ export default function DriversPage() {
                                             driver={driver}
                                             teamName={team?.name ?? null}
                                             teamColor={team?.color_primary ?? null}
+                                            teamIdentityId={team?.team_identity_id ?? null}
                                             onEdit={() => setEditingDriver(driver)}
                                             onDelete={() => setDeletingDriver(driver)}
                                         />

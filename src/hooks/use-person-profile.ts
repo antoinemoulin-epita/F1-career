@@ -75,7 +75,7 @@ export function usePersonTransfers(personId: string) {
             const driverIds = drivers.map((d) => d.id);
             const { data, error } = await supabase
                 .from("transfers")
-                .select("*, season:seasons(year), from_team:teams!transfers_from_team_id_fkey(name, color_primary), to_team:teams!transfers_to_team_id_fkey(name, color_primary)")
+                .select("*, season:seasons(year), from_team:teams!transfers_from_team_id_fkey(name, color_primary, team_identity_id), to_team:teams!transfers_to_team_id_fkey(name, color_primary, team_identity_id)")
                 .in("driver_id", driverIds)
                 .order("created_at", { ascending: false });
             if (error) throw error;

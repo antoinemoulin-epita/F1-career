@@ -27,6 +27,8 @@ import { Dropdown } from "@/components/base/dropdown/dropdown";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { ArcForm } from "@/components/forms/arc-form";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
+import { DriverLink, TeamLink } from "@/components/profile/entity-link";
+import { useArcRelatedEntities, type ArcRelatedEntities } from "@/hooks/use-arc-related-entities";
 import { useImportArcs } from "@/hooks/use-import-arcs";
 import { useAllNarrativeArcs, useUpdateArc, useDeleteArc } from "@/hooks/use-narrative-arcs";
 import { useUniverse } from "@/hooks/use-universes";
@@ -43,11 +45,15 @@ import type { NarrativeArc } from "@/types";
 
 function ArcCard({
     arc,
+    universeId,
+    entities,
     onEdit,
     onResolve,
     onDelete,
 }: {
     arc: NarrativeArc;
+    universeId: string;
+    entities?: ArcRelatedEntities;
     onEdit: () => void;
     onResolve: () => void;
     onDelete: () => void;
@@ -56,10 +62,20 @@ function ArcCard({
     const statusKey = arc.status ?? "signal";
     const importance = arc.importance ?? 0;
 
+    const drivers = (arc.related_driver_ids ?? [])
+        .map((id) => entities?.drivers.get(id))
+        .filter((d): d is NonNullable<typeof d> => !!d);
+    const teams = (arc.related_team_ids ?? [])
+        .map((id) => entities?.teams.get(id))
+        .filter((t): t is NonNullable<typeof t> => !!t);
+
     return (
-        <div className="rounded-xl border border-secondary bg-primary p-4">
+        <div className="rounded-xl border border-secondary bg-primary p-4 transition duration-100 ease-linear hover:border-brand hover:bg-primary_hover">
             <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
+                <a
+                    href={`/universe/${universeId}/arcs/${arc.id}`}
+                    className="min-w-0 flex-1"
+                >
                     <p className="font-semibold text-primary">{arc.name}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <Badge
@@ -87,7 +103,7 @@ function ArcCard({
                             {arc.description}
                         </p>
                     )}
-                </div>
+                </a>
                 <div className="flex shrink-0 items-center gap-2">
                     <div
                         className="text-sm text-tertiary"
@@ -131,6 +147,22 @@ function ArcCard({
                     </Dropdown.Root>
                 </div>
             </div>
+
+            {/* Related entities (outside <a> to allow nested links) */}
+            {(drivers.length > 0 || teams.length > 0) && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {drivers.map((d) => (
+                        <DriverLink key={d.driverId} personId={d.personId} className="text-xs">
+                            {d.firstName} {d.lastName}
+                        </DriverLink>
+                    ))}
+                    {teams.map((t) => (
+                        <TeamLink key={t.teamId} teamIdentityId={t.teamIdentityId} color={t.colorPrimary} className="text-xs">
+                            {t.name}
+                        </TeamLink>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -457,6 +489,22 @@ export default function ArcsPage() {
         };
     }, [arcs]);
 
+    // Collect all unique driver/team IDs across all arcs for entity resolution
+    const { allDriverIds, allTeamIds } = useMemo(() => {
+        const driverSet = new Set<string>();
+        const teamSet = new Set<string>();
+        for (const arc of arcs ?? []) {
+            for (const id of arc.related_driver_ids ?? []) driverSet.add(id);
+            for (const id of arc.related_team_ids ?? []) teamSet.add(id);
+        }
+        return {
+            allDriverIds: [...driverSet],
+            allTeamIds: [...teamSet],
+        };
+    }, [arcs]);
+
+    const { data: entities } = useArcRelatedEntities(allDriverIds, allTeamIds);
+
     if (isLoading) {
         return <PageLoading label="Chargement des arcs..." />;
     }
@@ -556,6 +604,8 @@ export default function ArcsPage() {
                         <Tabs.Panel id="active" className="pt-6">
                             <ArcList
                                 arcs={activeArcs}
+                                universeId={universeId}
+                                entities={entities}
                                 onEdit={setEditingArc}
                                 onResolve={setResolvingArc}
                                 onDelete={setDeletingArc}
@@ -565,6 +615,8 @@ export default function ArcsPage() {
                         <Tabs.Panel id="resolved" className="pt-6">
                             <ArcList
                                 arcs={resolvedArcs}
+                                universeId={universeId}
+                                entities={entities}
                                 onEdit={setEditingArc}
                                 onResolve={setResolvingArc}
                                 onDelete={setDeletingArc}
@@ -574,6 +626,8 @@ export default function ArcsPage() {
                         <Tabs.Panel id="all" className="pt-6">
                             <ArcList
                                 arcs={arcs ?? []}
+                                universeId={universeId}
+                                entities={entities}
                                 onEdit={setEditingArc}
                                 onResolve={setResolvingArc}
                                 onDelete={setDeletingArc}
@@ -626,11 +680,15 @@ export default function ArcsPage() {
 
 function ArcList({
     arcs,
+    universeId,
+    entities,
     onEdit,
     onResolve,
     onDelete,
 }: {
     arcs: NarrativeArc[];
+    universeId: string;
+    entities?: ArcRelatedEntities;
     onEdit: (arc: NarrativeArc) => void;
     onResolve: (arc: NarrativeArc) => void;
     onDelete: (arc: NarrativeArc) => void;
@@ -649,6 +707,8 @@ function ArcList({
                 <ArcCard
                     key={arc.id}
                     arc={arc}
+                    universeId={universeId}
+                    entities={entities}
                     onEdit={() => onEdit(arc)}
                     onResolve={() => onResolve(arc)}
                     onDelete={() => onDelete(arc)}
