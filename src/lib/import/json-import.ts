@@ -144,6 +144,19 @@ export async function importUniverse(data: UniverseExportData): Promise<ImportRe
         const newSeasonId = newSeason.id;
         seasonMap.set(season._exportId, newSeasonId);
 
+        // 5a-bis. Season-level points system
+        if (season.pointsSystem && season.pointsSystem.length > 0) {
+            const { error } = await supabase
+                .from("points_system")
+                .insert(season.pointsSystem.map((p) => ({
+                    universe_id: universeId,
+                    season_id: newSeasonId,
+                    position: p.position,
+                    points: p.points,
+                })));
+            if (error) errors.push(`Season points system (season ${season.year}): ${error.message}`);
+        }
+
         // 5b. Engine suppliers
         for (const es of season.engineSuppliers) {
             const { data: newEs, error } = await supabase

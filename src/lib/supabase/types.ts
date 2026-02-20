@@ -819,18 +819,21 @@ export type Database = {
           id: string
           points: number
           position: number
+          season_id: string | null
           universe_id: string
         }
         Insert: {
           id?: string
           points: number
           position: number
+          season_id?: string | null
           universe_id: string
         }
         Update: {
           id?: string
           points?: number
           position?: number
+          season_id?: string | null
           universe_id?: string
         }
         Relationships: [

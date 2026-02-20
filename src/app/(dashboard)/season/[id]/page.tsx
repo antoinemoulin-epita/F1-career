@@ -54,6 +54,7 @@ import {
     arcStatusLabels,
     arcStatusColor,
 } from "@/lib/constants/arc-labels";
+import { PointsSystemModal } from "@/components/forms/points-system-modal";
 import { DriverLink, TeamLink } from "@/components/profile/entity-link";
 import type { SeasonStatus, ArcType, ArcStatus } from "@/types";
 import type { FC } from "react";
@@ -773,6 +774,7 @@ export default function SeasonDashboardPage() {
         return newsData.some((n) => n.after_round === lastCompletedRound);
     }, [lastCompletedRound, newsData]);
 
+    const [isPointsModalOpen, setIsPointsModalOpen] = useState(false);
     const [newsModalDismissed, setNewsModalDismissed] = useState<Set<number>>(new Set());
     const showNewsModal =
         lastCompletedRound != null &&
@@ -819,13 +821,22 @@ export default function SeasonDashboardPage() {
                         {totalCount !== 1 ? "s" : ""} Prix
                     </p>
                 </div>
-                <BadgeWithDot
-                    size="md"
-                    color={statusColor[seasonStatus]}
-                    type="pill-color"
-                >
-                    {statusLabel[seasonStatus]}
-                </BadgeWithDot>
+                <div className="flex items-center gap-3">
+                    <Button
+                        size="sm"
+                        color="secondary"
+                        onClick={() => setIsPointsModalOpen(true)}
+                    >
+                        Bareme
+                    </Button>
+                    <BadgeWithDot
+                        size="md"
+                        color={statusColor[seasonStatus]}
+                        type="pill-color"
+                    >
+                        {statusLabel[seasonStatus]}
+                    </BadgeWithDot>
+                </div>
             </div>
 
             {/* Nav cards */}
@@ -926,6 +937,14 @@ export default function SeasonDashboardPage() {
                     <NarrativeArcsSection arcs={narrativeArcs} />
                 </div>
             )}
+
+            {/* Points system modal */}
+            <PointsSystemModal
+                seasonId={seasonId}
+                universeId={season.universe_id}
+                isOpen={isPointsModalOpen}
+                onOpenChange={setIsPointsModalOpen}
+            />
 
             {/* News auto-modal */}
             {showNewsModal && lastCompletedRound != null && (

@@ -18,6 +18,7 @@ export const raceResultKeys = {
 
 export const pointsSystemKeys = {
     byUniverse: (universeId: string) => ["points-system", { universeId }] as const,
+    bySeason: (seasonId: string) => ["points-system", { seasonId }] as const,
 };
 
 export const standingsKeys = {
@@ -56,6 +57,95 @@ export function usePointsSystem(universeId: string) {
             return data;
         },
         enabled: !!universeId,
+    });
+}
+
+export function usePointsSystemForSeason(seasonId: string, universeId: string | undefined) {
+    return useQuery({
+        queryKey: pointsSystemKeys.bySeason(seasonId),
+        queryFn: async () => {
+            // Try season-specific rows first
+            const { data: seasonRows, error: sError } = await supabase
+                .from("points_system")
+                .select("*")
+                .eq("season_id", seasonId)
+                .order("position");
+            if (sError) throw sError;
+
+            if (seasonRows && seasonRows.length > 0) {
+                return { rows: seasonRows, source: "season" as const };
+            }
+
+            // Fallback to universe defaults
+            if (!universeId) return { rows: [], source: "universe" as const };
+
+            const { data: universeRows, error: uError } = await supabase
+                .from("points_system")
+                .select("*")
+                .eq("universe_id", universeId)
+                .is("season_id", null)
+                .order("position");
+            if (uError) throw uError;
+
+            return { rows: universeRows ?? [], source: "universe" as const };
+        },
+        enabled: !!seasonId,
+    });
+}
+
+export function useSaveSeasonPointsSystem() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (input: {
+            seasonId: string;
+            universeId: string;
+            rows: { position: number; points: number }[];
+        }) => {
+            // Delete existing season-specific rows
+            const { error: delError } = await supabase
+                .from("points_system")
+                .delete()
+                .eq("season_id", input.seasonId);
+            if (delError) throw delError;
+
+            // Insert new season-specific rows
+            if (input.rows.length > 0) {
+                const { error: insError } = await supabase
+                    .from("points_system")
+                    .insert(
+                        input.rows.map((r) => ({
+                            universe_id: input.universeId,
+                            season_id: input.seasonId,
+                            position: r.position,
+                            points: r.points,
+                        })),
+                    );
+                if (insError) throw insError;
+            }
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: pointsSystemKeys.bySeason(variables.seasonId) });
+            queryClient.invalidateQueries({ queryKey: pointsSystemKeys.byUniverse(variables.universeId) });
+        },
+    });
+}
+
+export function useResetSeasonPointsSystem() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (input: { seasonId: string; universeId: string }) => {
+            const { error } = await supabase
+                .from("points_system")
+                .delete()
+                .eq("season_id", input.seasonId);
+            if (error) throw error;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: pointsSystemKeys.bySeason(variables.seasonId) });
+            queryClient.invalidateQueries({ queryKey: pointsSystemKeys.byUniverse(variables.universeId) });
+        },
     });
 }
 

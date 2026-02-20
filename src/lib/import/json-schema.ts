@@ -9,6 +9,10 @@ const seasonExportSchema = z.object({
     race_laps: z.number().nullable().optional(),
     predictions_locked: z.boolean().nullable().optional(),
     isCurrent: z.boolean().optional(),
+    pointsSystem: z.array(z.object({
+        position: z.number(),
+        points: z.number(),
+    })).optional(),
     engineSuppliers: z.array(z.object({
         _exportId: z.string(),
         name: z.string(),

@@ -71,6 +71,10 @@ export interface SeasonExport {
     race_laps: number | null;
     predictions_locked: boolean | null;
     isCurrent: boolean;
+    pointsSystem?: {
+        position: number;
+        points: number;
+    }[];
     engineSuppliers: {
         _exportId: string;
         name: string;
@@ -227,7 +231,7 @@ export async function exportUniverse(universeId: string): Promise<UniverseExport
         { data: historyChampions },
         { data: seasons },
     ] = await Promise.all([
-        supabase.from("points_system").select("*").eq("universe_id", universeId).order("position"),
+        supabase.from("points_system").select("*").eq("universe_id", universeId).is("season_id", null).order("position"),
         supabase.from("regulations").select("*").eq("universe_id", universeId).order("effective_year"),
         supabase.from("rookie_pool").select("*").eq("universe_id", universeId).order("last_name"),
         supabase.from("narrative_arcs").select("*").eq("universe_id", universeId),
@@ -250,6 +254,7 @@ export async function exportUniverse(universeId: string): Promise<UniverseExport
             { data: standingsConstructors },
             { data: news },
             { data: transfers },
+            { data: seasonPointsSystem },
         ] = await Promise.all([
             supabase.from("engine_suppliers").select("*").eq("season_id", season.id),
             supabase.from("teams").select("*").eq("season_id", season.id),
@@ -261,6 +266,7 @@ export async function exportUniverse(universeId: string): Promise<UniverseExport
             supabase.from("standings_constructors").select("*").eq("season_id", season.id),
             supabase.from("news").select("*").eq("season_id", season.id),
             supabase.from("transfers").select("*").eq("season_id", season.id),
+            supabase.from("points_system").select("*").eq("season_id", season.id).order("position"),
         ]);
 
         // Fetch cars by team IDs
@@ -295,6 +301,9 @@ export async function exportUniverse(universeId: string): Promise<UniverseExport
             race_laps: season.race_laps,
             predictions_locked: season.predictions_locked,
             isCurrent: season.id === universe.current_season_id,
+            pointsSystem: (seasonPointsSystem && seasonPointsSystem.length > 0)
+                ? seasonPointsSystem.map((p) => ({ position: p.position, points: p.points }))
+                : undefined,
             engineSuppliers: (engineSuppliers ?? []).map((es) => ({
                 _exportId: es.id,
                 name: es.name,

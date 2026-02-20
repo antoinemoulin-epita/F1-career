@@ -29,7 +29,7 @@ import { useTeams } from "@/hooks/use-teams";
 import { useSeason } from "@/hooks/use-seasons";
 import {
     useRaceResults,
-    usePointsSystem,
+    usePointsSystemForSeason,
     useSaveRaceResults,
     type DnfInfo,
 } from "@/hooks/use-race-results";
@@ -183,7 +183,8 @@ export default function RaceResultsPage() {
     const { data: driversRaw, isLoading: driversLoading } = useDrivers(seasonId);
     const { data: teamsRaw } = useTeams(seasonId);
     const { data: season } = useSeason(seasonId);
-    const { data: pointsSystemRows } = usePointsSystem(season?.universe_id ?? "");
+    const { data: pointsData } = usePointsSystemForSeason(seasonId, season?.universe_id);
+    const pointsSystemRows = pointsData?.rows;
     const saveRaceResults = useSaveRaceResults();
 
     const race = raceRaw as RaceWithCircuit | undefined;
