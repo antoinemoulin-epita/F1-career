@@ -19,3 +19,4 @@ export { regulationSchema, regulationFormDefaults, type RegulationFormValues } f
 export { sponsorObjectiveSchema, sponsorObjectiveFormDefaults, type SponsorObjectiveFormValues } from "./sponsor-objective";
 export { staffSchema, staffFormDefaults, type StaffFormValues } from "./staff";
 export { historyChampionSchema, historyChampionFormDefaults, type HistoryChampionFormValues } from "./history-champion";
+export { staffPoolSchema, staffPoolFormDefaults, type StaffPoolFormValues } from "./staff-pool";

@@ -17,6 +17,8 @@ import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-ic
 import { NewsForm } from "@/components/forms/news-form";
 import { useNews, useDeleteNews } from "@/hooks/use-news";
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
+import { useNewsMentions } from "@/hooks/use-news-mentions";
+import { usePersonIdentities, useTeamIdentities } from "@/hooks/use-staff";
 import { useSeason } from "@/hooks/use-seasons";
 import { newsTypeLabels, newsTypeBadgeColor } from "@/lib/constants/arc-labels";
 
@@ -29,6 +31,9 @@ export default function NewsDetailPage() {
     const { data: season, isLoading: seasonLoading } = useSeason(seasonId);
     const { data: allNews, isLoading: newsLoading } = useNews(seasonId);
     const { data: arcs } = useNarrativeArcs(season?.universe_id ?? "");
+    const { data: mentions } = useNewsMentions(newsId);
+    const { data: personIdentities } = usePersonIdentities(season?.universe_id ?? "");
+    const { data: teamIdentities } = useTeamIdentities(season?.universe_id ?? "");
     const deleteNews = useDeleteNews();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -43,6 +48,43 @@ export default function NewsDetailPage() {
         if (!news?.arc_id || !arcs) return null;
         return arcs.find((a) => a.id === news.arc_id)?.name ?? null;
     }, [news, arcs]);
+
+    // Resolve mention entity names and links
+    const mentionEntities = useMemo(() => {
+        if (!mentions || mentions.length === 0) return [];
+
+        const personMap = new Map((personIdentities ?? []).map((p) => [p.id, p]));
+        const teamMap = new Map((teamIdentities ?? []).map((t) => [t.id, t]));
+
+        return mentions.map((m) => {
+            if (m.entity_type === "driver") {
+                const p = personMap.get(m.entity_id);
+                return {
+                    id: m.id,
+                    type: "Pilote",
+                    name: p ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() : "Inconnu",
+                    href: p ? `/profile/driver/${p.id}` : null,
+                };
+            }
+            if (m.entity_type === "team") {
+                const t = teamMap.get(m.entity_id);
+                return {
+                    id: m.id,
+                    type: "Ecurie",
+                    name: t?.name ?? "Inconnue",
+                    href: t ? `/profile/team/${t.id}` : null,
+                };
+            }
+            // staff
+            const p = personMap.get(m.entity_id);
+            return {
+                id: m.id,
+                type: "Staff",
+                name: p ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() : "Inconnu",
+                href: p ? `/profile/staff/${p.id}` : null,
+            };
+        });
+    }, [mentions, personIdentities, teamIdentities]);
 
     const isLoading = seasonLoading || newsLoading;
 
@@ -165,6 +207,25 @@ export default function NewsDetailPage() {
                     <p className="whitespace-pre-wrap text-sm leading-relaxed text-secondary">
                         {news.content}
                     </p>
+                </div>
+            )}
+
+            {/* Mentions */}
+            {mentionEntities.length > 0 && (
+                <div className="mt-6">
+                    <h2 className="mb-3 text-sm font-semibold text-secondary">Mentions</h2>
+                    <div className="flex flex-wrap gap-2">
+                        {mentionEntities.map((m) => (
+                            <a
+                                key={m.id}
+                                href={m.href ?? "#"}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-secondary bg-primary px-3 py-1.5 text-sm transition duration-100 ease-linear hover:border-brand hover:bg-primary_hover"
+                            >
+                                <span className="text-xs text-tertiary">{m.type}</span>
+                                <span className="font-medium text-primary">{m.name}</span>
+                            </a>
+                        ))}
+                    </div>
                 </div>
             )}
 

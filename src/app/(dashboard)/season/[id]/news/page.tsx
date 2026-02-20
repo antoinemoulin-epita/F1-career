@@ -27,6 +27,8 @@ import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { useImportNews } from "@/hooks/use-import-news";
 import { useNews, useDeleteNews } from "@/hooks/use-news";
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
+import { useNewsMentionsByNewsIds } from "@/hooks/use-news-mentions";
+import { usePersonIdentities, useTeamIdentities } from "@/hooks/use-staff";
 import { useSeason } from "@/hooks/use-seasons";
 import { newsImportSchema, type NewsImportValues } from "@/lib/validators/news-import";
 import type { NewsFormValues } from "@/lib/validators";
@@ -215,12 +217,14 @@ function NewsCard({
     news,
     arcName,
     seasonId,
+    mentionNames,
     onEdit,
     onDelete,
 }: {
     news: News;
     arcName: string | null;
     seasonId: string;
+    mentionNames: string[];
     onEdit: () => void;
     onDelete: () => void;
 }) {
@@ -258,6 +262,11 @@ function NewsCard({
                             {arcName}
                         </Badge>
                     )}
+                    {mentionNames.map((name) => (
+                        <Badge key={name} size="sm" color="blue" type="pill-color">
+                            {name}
+                        </Badge>
+                    ))}
                 </div>
                 {news.content && (
                     <p className="mt-2 line-clamp-2 text-sm text-tertiary">
@@ -330,6 +339,36 @@ export default function NewsPage() {
     const { data: news, isLoading: newsLoading } = useNews(seasonId);
     const { data: arcs } = useNarrativeArcs(season?.universe_id ?? "");
     const importNews = useImportNews();
+
+    // Load all mentions for this season's news
+    const newsIds = useMemo(() => (news ?? []).map((n) => n.id), [news]);
+    const { data: allMentions } = useNewsMentionsByNewsIds(newsIds);
+    const { data: personIdentities } = usePersonIdentities(season?.universe_id ?? "");
+    const { data: teamIdentities } = useTeamIdentities(season?.universe_id ?? "");
+
+    // Build entity name maps
+    const entityNameMap = useMemo(() => {
+        const map = new Map<string, string>();
+        (personIdentities ?? []).forEach((p) => {
+            map.set(p.id, `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim());
+        });
+        (teamIdentities ?? []).forEach((t) => {
+            map.set(t.id, t.name ?? "");
+        });
+        return map;
+    }, [personIdentities, teamIdentities]);
+
+    // Build mentions-per-news map
+    const mentionsPerNews = useMemo(() => {
+        const map = new Map<string, string[]>();
+        (allMentions ?? []).forEach((m) => {
+            const name = entityNameMap.get(m.entity_id);
+            if (!name) return;
+            if (!map.has(m.news_id)) map.set(m.news_id, []);
+            map.get(m.news_id)!.push(name);
+        });
+        return map;
+    }, [allMentions, entityNameMap]);
 
     const [editingNews, setEditingNews] = useState<News | null>(null);
     const [deletingNews, setDeletingNews] = useState<News | null>(null);
@@ -503,6 +542,7 @@ export default function NewsPage() {
                                                     ? arcNameMap.get(n.arc_id) ?? null
                                                     : null
                                             }
+                                            mentionNames={mentionsPerNews.get(n.id) ?? []}
                                             onEdit={() => setEditingNews(n)}
                                             onDelete={() => setDeletingNews(n)}
                                         />

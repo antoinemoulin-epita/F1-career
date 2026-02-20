@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { newsMentionKeys } from "./use-news-mentions";
 import type { NewsFormValues } from "@/lib/validators";
 
 const supabase = createClient();
@@ -26,6 +27,27 @@ export function useNews(seasonId: string) {
         },
         enabled: !!seasonId,
     });
+}
+
+type MentionInput = { entity_type: string; entity_id: string };
+
+async function upsertMentions(newsId: string, mentions: MentionInput[]) {
+    if (mentions.length === 0) return;
+    const payload = mentions.map((m) => ({
+        news_id: newsId,
+        entity_type: m.entity_type,
+        entity_id: m.entity_id,
+    }));
+    const { error } = await supabase.from("news_mentions").insert(payload);
+    if (error) throw error;
+}
+
+function buildMentions(form: NewsFormValues): MentionInput[] {
+    const mentions: MentionInput[] = [];
+    form.mentioned_drivers?.forEach((id) => mentions.push({ entity_type: "driver", entity_id: id }));
+    form.mentioned_teams?.forEach((id) => mentions.push({ entity_type: "team", entity_id: id }));
+    form.mentioned_staff?.forEach((id) => mentions.push({ entity_type: "staff", entity_id: id }));
+    return mentions;
 }
 
 export function useCreateNews() {
@@ -53,6 +75,11 @@ export function useCreateNews() {
                 .select()
                 .single();
             if (error) throw error;
+
+            // Insert mentions
+            const mentions = buildMentions(form);
+            await upsertMentions(data.id, mentions);
+
             return data;
         },
         onSuccess: (_data, variables) => {
@@ -90,11 +117,25 @@ export function useUpdateNews() {
                 .select()
                 .single();
             if (error) throw error;
+
+            // Replace mentions: delete old, insert new
+            const { error: delError } = await supabase
+                .from("news_mentions")
+                .delete()
+                .eq("news_id", id);
+            if (delError) throw delError;
+
+            const mentions = buildMentions(form);
+            await upsertMentions(id, mentions);
+
             return data;
         },
-        onSuccess: (_data, variables) => {
+        onSuccess: (data, variables) => {
             queryClient.invalidateQueries({
                 queryKey: newsKeys.bySeason(variables.seasonId),
+            });
+            queryClient.invalidateQueries({
+                queryKey: newsMentionKeys.byNews(variables.id),
             });
         },
     });

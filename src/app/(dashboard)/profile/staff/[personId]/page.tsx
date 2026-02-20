@@ -8,6 +8,8 @@ import { ProfileHeader } from "@/components/profile/profile-header";
 import { CareerTimeline } from "@/components/profile/career-timeline";
 import { TeamLink } from "@/components/profile/entity-link";
 import { useStaffIdentity, useStaffCareer } from "@/hooks/use-staff-profile";
+import { useNewsByEntity } from "@/hooks/use-news-mentions";
+import { newsTypeLabels, newsTypeBadgeColor } from "@/lib/constants/arc-labels";
 
 export default function StaffProfilePage() {
     return (
@@ -29,6 +31,7 @@ function StaffProfileContent() {
 
     const { data: person, isLoading, error } = useStaffIdentity(personId);
     const { data: career } = useStaffCareer(personId);
+    const { data: entityNews } = useNewsByEntity("staff", personId);
 
     if (isLoading) return <PageLoading label="Chargement..." />;
 
@@ -118,6 +121,38 @@ function StaffProfileContent() {
                     title="Parcours"
                     entries={timelineEntries}
                 />
+
+                {/* News mentions */}
+                {(entityNews?.length ?? 0) > 0 && (
+                    <div>
+                        <h2 className="mb-3 text-sm font-semibold text-secondary">
+                            News ({entityNews!.length})
+                        </h2>
+                        <div className="flex flex-col gap-3">
+                            {entityNews!.map((n) => {
+                                const typeKey = n.news_type ?? "other";
+                                return (
+                                    <a
+                                        key={n.id}
+                                        href={`/season/${n.season_id}/news/${n.id}`}
+                                        className="rounded-xl border border-secondary bg-primary p-4 transition duration-100 ease-linear hover:border-brand hover:bg-primary_hover"
+                                    >
+                                        <p className="font-medium text-primary">{n.headline}</p>
+                                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                            <Badge
+                                                size="sm"
+                                                color={newsTypeBadgeColor[typeKey] ?? "gray"}
+                                                type="pill-color"
+                                            >
+                                                {newsTypeLabels[typeKey] ?? typeKey}
+                                            </Badge>
+                                        </div>
+                                    </a>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

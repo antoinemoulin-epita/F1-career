@@ -3,12 +3,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { rookiePoolKeys } from "./use-rookie-pool";
-import type { RookiePoolFormValues } from "@/lib/validators";
+import { staffPoolKeys } from "./use-staff-pool";
+import type { StaffPoolFormValues } from "@/lib/validators";
 
 const supabase = createClient();
 
-export function useImportRookies() {
+export function useImportStaffPool() {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -17,7 +17,7 @@ export function useImportRookies() {
             rows,
         }: {
             universeId: string;
-            rows: RookiePoolFormValues[];
+            rows: StaffPoolFormValues[];
         }) => {
             const payload = rows.map((form) => ({
                 universe_id: universeId,
@@ -25,14 +25,15 @@ export function useImportRookies() {
                 last_name: form.last_name.trim(),
                 nationality: form.nationality?.trim() || null,
                 birth_year: form.birth_year ?? null,
+                role: form.role,
+                note: form.note ?? null,
                 potential_min: form.potential_min,
                 potential_max: form.potential_max,
                 available_from_year: form.available_from_year ?? null,
-                note: form.note ?? null,
             }));
 
             const { data, error } = await supabase
-                .from("rookie_pool")
+                .from("staff_pool")
                 .insert(payload)
                 .select();
             if (error) throw error;
@@ -40,9 +41,9 @@ export function useImportRookies() {
         },
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({
-                queryKey: rookiePoolKeys.byUniverse(variables.universeId),
+                queryKey: staffPoolKeys.byUniverse(variables.universeId),
             });
-            toast.success(`${data.length} rookie${data.length > 1 ? "s" : ""} importe${data.length > 1 ? "s" : ""}`);
+            toast.success(`${data.length} staff importe${data.length > 1 ? "s" : ""}`);
         },
     });
 }

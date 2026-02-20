@@ -23,6 +23,8 @@ import {
     useTeamTransfers,
     useTeamArcs,
 } from "@/hooks/use-team-profile";
+import { useNewsByEntity } from "@/hooks/use-news-mentions";
+import { newsTypeLabels, newsTypeBadgeColor } from "@/lib/constants/arc-labels";
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
@@ -45,6 +47,7 @@ function TeamProfileContent() {
     const { data: drivers } = useTeamDrivers(teamIdentityId);
     const { data: transfers } = useTeamTransfers(teamIdentityId);
     const { data: arcs } = useTeamArcs(teamIdentityId);
+    const { data: entityNews } = useNewsByEntity("team", teamIdentityId);
 
     // Chart data from history
     const chartData = useMemo(() => {
@@ -125,6 +128,7 @@ function TeamProfileContent() {
                         { id: "finance", label: "Finance" },
                         { id: "transfers", label: `Transferts${(transfers?.length ?? 0) > 0 ? ` (${transfers!.length})` : ""}` },
                         { id: "storylines", label: `Storylines${(arcs?.length ?? 0) > 0 ? ` (${arcs!.length})` : ""}` },
+                        { id: "news", label: `News${(entityNews?.length ?? 0) > 0 ? ` (${entityNews!.length})` : ""}` },
                     ]}
                 />
 
@@ -363,6 +367,42 @@ function TeamProfileContent() {
                             title="Arcs narratifs"
                             arcs={arcs ?? []}
                         />
+                    </div>
+                </Tabs.Panel>
+
+                {/* ─── Tab: News ──────────────────────────────────── */}
+                <Tabs.Panel id="news">
+                    <div className="pt-6">
+                        <h2 className="mb-3 text-sm font-semibold text-secondary">
+                            Actualites mentionnant cette ecurie
+                        </h2>
+                        {(entityNews?.length ?? 0) === 0 ? (
+                            <p className="text-sm text-tertiary">Aucune mention trouvee.</p>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                {entityNews!.map((n) => {
+                                    const typeKey = n.news_type ?? "other";
+                                    return (
+                                        <a
+                                            key={n.id}
+                                            href={`/season/${n.season_id}/news/${n.id}`}
+                                            className="rounded-xl border border-secondary bg-primary p-4 transition duration-100 ease-linear hover:border-brand hover:bg-primary_hover"
+                                        >
+                                            <p className="font-medium text-primary">{n.headline}</p>
+                                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                                <Badge
+                                                    size="sm"
+                                                    color={newsTypeBadgeColor[typeKey] ?? "gray"}
+                                                    type="pill-color"
+                                                >
+                                                    {newsTypeLabels[typeKey] ?? typeKey}
+                                                </Badge>
+                                            </div>
+                                        </a>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </Tabs.Panel>
             </Tabs>

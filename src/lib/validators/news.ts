@@ -20,6 +20,9 @@ export const newsSchema = z.object({
     importance: z.number().int().min(1).max(5),
     after_round: z.number().int().min(0).nullable().optional(),
     arc_id: z.string().nullable().optional(),
+    mentioned_drivers: z.array(z.string()).optional(),
+    mentioned_teams: z.array(z.string()).optional(),
+    mentioned_staff: z.array(z.string()).optional(),
 });
 
 export type NewsFormValues = z.infer<typeof newsSchema>;
@@ -31,4 +34,7 @@ export const newsFormDefaults: NewsFormValues = {
     importance: 2,
     after_round: null,
     arc_id: null,
+    mentioned_drivers: [],
+    mentioned_teams: [],
+    mentioned_staff: [],
 };

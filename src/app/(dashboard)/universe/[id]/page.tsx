@@ -546,6 +546,22 @@ export default function UniverseDetailPage() {
             {/* Divider */}
             <div className="my-8 border-t border-secondary" />
 
+            {/* Staff pool link */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold text-primary">Pool Staff</h2>
+                    <p className="mt-0.5 text-sm text-tertiary">
+                        Gerez les directeurs et ingenieurs disponibles au recrutement.
+                    </p>
+                </div>
+                <Button size="md" color="secondary" href={`/universe/${universe.id}/staff-pool`}>
+                    Voir le pool
+                </Button>
+            </div>
+
+            {/* Divider */}
+            <div className="my-8 border-t border-secondary" />
+
             {/* Narrative arcs link */}
             <div className="flex items-center justify-between">
                 <div>

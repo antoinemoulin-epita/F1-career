@@ -26,6 +26,8 @@ export type RookiePool = Tables<"rookie_pool">;
 export type PersonIdentity = Tables<"person_identities">;
 export type TeamIdentity = Tables<"team_identities">;
 export type StaffMember = Tables<"staff_members">;
+export type StaffPool = Tables<"staff_pool">;
+export type NewsMention = Tables<"news_mentions">;
 
 // ─── View types ──────────────────────────────────────────────────────────────
 

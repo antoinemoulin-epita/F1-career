@@ -1,13 +1,19 @@
 "use client";
 
+import { useMemo } from "react";
 import { useForm, useController, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useListData } from "react-stately";
+import type { Key } from "react-aria-components";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { TextArea } from "@/components/base/textarea/textarea";
 import { Select } from "@/components/base/select/select";
+import { MultiSelect } from "@/components/base/select/multi-select";
 import { useCreateNews, useUpdateNews } from "@/hooks/use-news";
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
+import { usePersonIdentities, useTeamIdentities } from "@/hooks/use-staff";
+import { useNewsMentions } from "@/hooks/use-news-mentions";
 import { newsSchema, newsFormDefaults, type NewsFormValues } from "@/lib/validators";
 import { newsTypeLabels } from "@/lib/constants/arc-labels";
 import { importanceItems } from "@/lib/constants/nationalities";
@@ -80,6 +86,54 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     );
 }
 
+// ─── MentionMultiSelect ────────────────────────────────────────────────────
+
+type SelectItemType = { id: string; label: string };
+
+function MentionMultiSelect({
+    label,
+    placeholder,
+    allItems,
+    initialIds,
+    onChange,
+}: {
+    label: string;
+    placeholder: string;
+    allItems: SelectItemType[];
+    initialIds: string[];
+    onChange: (ids: string[]) => void;
+}) {
+    const initialItems = useMemo(
+        () => allItems.filter((item) => initialIds.includes(item.id)),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [], // Only compute initial items once
+    );
+
+    const selectedItems = useListData<SelectItemType>({
+        initialItems,
+    });
+
+    return (
+        <MultiSelect
+            label={label}
+            placeholder={placeholder}
+            items={allItems}
+            selectedItems={selectedItems}
+            onItemInserted={() => {
+                onChange(selectedItems.items.map((i) => i.id));
+            }}
+            onItemCleared={() => {
+                // Use setTimeout to read after the state update
+                setTimeout(() => {
+                    onChange(selectedItems.items.map((i) => i.id));
+                }, 0);
+            }}
+        >
+            {(item) => <MultiSelect.Item id={item.id}>{item.label}</MultiSelect.Item>}
+        </MultiSelect>
+    );
+}
+
 // ─── NewsForm ───────────────────────────────────────────────────────────────
 
 interface NewsFormProps {
@@ -95,8 +149,23 @@ export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSucc
     const createNews = useCreateNews();
     const updateNews = useUpdateNews();
     const { data: arcs } = useNarrativeArcs(universeId);
+    const { data: personIdentities } = usePersonIdentities(universeId);
+    const { data: teamIdentities } = useTeamIdentities(universeId);
+
+    // Load existing mentions for edit mode
+    const { data: existingMentions } = useNewsMentions(news?.id ?? "");
 
     const isEdit = !!news;
+
+    // Pre-compute default mention IDs from existing data
+    const defaultMentions = useMemo(() => {
+        if (!existingMentions) return { drivers: [] as string[], teams: [] as string[], staff: [] as string[] };
+        return {
+            drivers: existingMentions.filter((m) => m.entity_type === "driver").map((m) => m.entity_id),
+            teams: existingMentions.filter((m) => m.entity_type === "team").map((m) => m.entity_id),
+            staff: existingMentions.filter((m) => m.entity_type === "staff").map((m) => m.entity_id),
+        };
+    }, [existingMentions]);
 
     const form = useForm<NewsFormValues>({
         resolver: zodResolver(newsSchema),
@@ -108,6 +177,9 @@ export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSucc
                   importance: news.importance ?? 2,
                   after_round: news.after_round ?? null,
                   arc_id: news.arc_id ?? null,
+                  mentioned_drivers: defaultMentions.drivers,
+                  mentioned_teams: defaultMentions.teams,
+                  mentioned_staff: defaultMentions.staff,
               }
             : { ...newsFormDefaults, ...(defaultAfterRound != null ? { after_round: defaultAfterRound } : {}) },
     });
@@ -134,6 +206,26 @@ export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSucc
         { id: "__none__", label: "Aucun" },
         ...(arcs ?? []).map((a) => ({ id: a.id, label: a.name ?? "Sans nom" })),
     ];
+
+    // Entity items for mentions
+    const driverItems = useMemo(
+        () => (personIdentities ?? [])
+            .filter((p) => p.role === "driver")
+            .map((p) => ({ id: p.id, label: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() })),
+        [personIdentities],
+    );
+
+    const teamItems = useMemo(
+        () => (teamIdentities ?? []).map((t) => ({ id: t.id, label: t.name ?? "" })),
+        [teamIdentities],
+    );
+
+    const staffItems = useMemo(
+        () => (personIdentities ?? [])
+            .filter((p) => p.role && p.role !== "driver")
+            .map((p) => ({ id: p.id, label: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() })),
+        [personIdentities],
+    );
 
     // RHF controllers for Selects / TextArea
     const importanceField = useController({ name: "importance", control: form.control });
@@ -206,6 +298,39 @@ export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSucc
                         {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
                     </Select>
                 </Section>
+
+                {/* Mentions */}
+                {(driverItems.length > 0 || teamItems.length > 0 || staffItems.length > 0) && (
+                    <Section title="Mentions">
+                        {driverItems.length > 0 && (
+                            <MentionMultiSelect
+                                label="Pilotes mentionnes"
+                                placeholder="Rechercher un pilote..."
+                                allItems={driverItems}
+                                initialIds={defaultMentions.drivers}
+                                onChange={(ids) => form.setValue("mentioned_drivers", ids)}
+                            />
+                        )}
+                        {teamItems.length > 0 && (
+                            <MentionMultiSelect
+                                label="Ecuries mentionnees"
+                                placeholder="Rechercher une ecurie..."
+                                allItems={teamItems}
+                                initialIds={defaultMentions.teams}
+                                onChange={(ids) => form.setValue("mentioned_teams", ids)}
+                            />
+                        )}
+                        {staffItems.length > 0 && (
+                            <MentionMultiSelect
+                                label="Staff mentionne"
+                                placeholder="Rechercher un staff..."
+                                allItems={staffItems}
+                                initialIds={defaultMentions.staff}
+                                onChange={(ids) => form.setValue("mentioned_staff", ids)}
+                            />
+                        )}
+                    </Section>
+                )}
             </div>
 
             {/* Actions */}

@@ -50,6 +50,27 @@ export function usePersonIdentities(universeId: string) {
     });
 }
 
+export const teamIdentityKeys = {
+    all: ["team-identities"] as const,
+    byUniverse: (universeId: string) => ["team-identities", { universeId }] as const,
+};
+
+export function useTeamIdentities(universeId: string) {
+    return useQuery({
+        queryKey: teamIdentityKeys.byUniverse(universeId),
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("team_identities")
+                .select("*")
+                .eq("universe_id", universeId)
+                .order("name");
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!universeId,
+    });
+}
+
 export function useCreateStaff() {
     const queryClient = useQueryClient();
 
