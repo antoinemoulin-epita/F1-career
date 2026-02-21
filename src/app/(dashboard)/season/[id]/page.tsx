@@ -17,6 +17,8 @@ import {
     Trophy01,
     User01,
     Users01,
+    RefreshCcw01,
+    AlertTriangle,
 } from "@untitledui/icons";
 import { Badge, BadgeWithDot } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
@@ -33,7 +35,7 @@ import {
 } from "@/components/application/modals/modal";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { NewsForm } from "@/components/forms/news-form";
-import { useSeason } from "@/hooks/use-seasons";
+import { useSeason, useResetSeason } from "@/hooks/use-seasons";
 import { useTableSort } from "@/hooks/use-table-sort";
 import { useCalendar } from "@/hooks/use-calendar";
 import { useDrivers } from "@/hooks/use-drivers";
@@ -775,6 +777,8 @@ export default function SeasonDashboardPage() {
     }, [lastCompletedRound, newsData]);
 
     const [isPointsModalOpen, setIsPointsModalOpen] = useState(false);
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    const resetSeason = useResetSeason();
     const [newsModalDismissed, setNewsModalDismissed] = useState<Set<number>>(new Set());
     const showNewsModal =
         lastCompletedRound != null &&
@@ -822,6 +826,16 @@ export default function SeasonDashboardPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {completedCount > 0 && (
+                        <Button
+                            size="sm"
+                            color="tertiary-destructive"
+                            iconLeading={RefreshCcw01}
+                            onClick={() => setIsResetModalOpen(true)}
+                        >
+                            Reinitialiser
+                        </Button>
+                    )}
                     <Button
                         size="sm"
                         color="secondary"
@@ -937,6 +951,58 @@ export default function SeasonDashboardPage() {
                     <NarrativeArcsSection arcs={narrativeArcs} />
                 </div>
             )}
+
+            {/* Reset season modal */}
+            <DialogTrigger isOpen={isResetModalOpen} onOpenChange={setIsResetModalOpen}>
+                <ModalOverlay>
+                    <Modal className="max-w-md">
+                        <Dialog>
+                            <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
+                                <div className="mb-5 flex items-start gap-4">
+                                    <FeaturedIcon
+                                        icon={AlertTriangle}
+                                        color="warning"
+                                        theme="light"
+                                        size="md"
+                                    />
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-primary">
+                                            Reinitialiser la saison
+                                        </h2>
+                                        <p className="mt-1 text-sm text-tertiary">
+                                            Tous les resultats de course, qualifications et classements
+                                            seront supprimes. Le calendrier, les pilotes, les ecuries
+                                            et les news seront conserves.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                    <Button
+                                        size="sm"
+                                        color="secondary"
+                                        onClick={() => setIsResetModalOpen(false)}
+                                    >
+                                        Annuler
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        color="primary-destructive"
+                                        isLoading={resetSeason.isPending}
+                                        onClick={() => {
+                                            resetSeason.mutate(
+                                                { seasonId },
+                                                { onSuccess: () => setIsResetModalOpen(false) },
+                                            );
+                                        }}
+                                    >
+                                        Reinitialiser
+                                    </Button>
+                                </div>
+                            </div>
+                        </Dialog>
+                    </Modal>
+                </ModalOverlay>
+            </DialogTrigger>
 
             {/* Points system modal */}
             <PointsSystemModal
