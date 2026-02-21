@@ -74,7 +74,7 @@ function DriverProfileContent() {
         if (!seasons) return [];
         return seasons.map((s) => ({
             year: s.year ?? 0,
-            role: s.is_rookie ? "Rookie" : s.is_first_driver === true ? "Pilote #1" : s.is_first_driver === false ? "Pilote #2" : null,
+            role: s.is_rookie ? "Rookie" : s.is_first_driver === true ? "Pilote #1" : null,
             teamName: s.team_name ?? "Sans equipe",
             teamColor: s.team_color,
             detail: s.championship_position ? `P${s.championship_position} - ${s.season_points ?? 0} pts` : undefined,
@@ -134,7 +134,9 @@ function DriverProfileContent() {
                 title={fullName}
                 subtitle={[
                     profile.nationality,
-                    profile.birth_year ? `Ne en ${profile.birth_year}` : null,
+                    profile.birth_year && currentSeason?.year
+                        ? `${currentSeason.year - profile.birth_year} ans`
+                        : null,
                 ].filter(Boolean).join(" · ")}
                 badges={
                     <>

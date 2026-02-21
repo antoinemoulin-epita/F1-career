@@ -103,7 +103,7 @@ export function useArchivedSeason(universeId: string, year: number) {
                 .select("id, year, gp_count, status")
                 .eq("universe_id", universeId)
                 .eq("year", year)
-                .eq("status", "completed")
+                .in("status", ["completed", "active"])
                 .single();
             if (error) throw error;
             return data as { id: string; year: number; gp_count: number; status: string };
@@ -118,12 +118,12 @@ export function useAllTimeStats(universeId: string) {
     return useQuery({
         queryKey: historyKeys.allTimeStats(universeId),
         queryFn: async () => {
-            // 1. Completed seasons for this universe
+            // 1. Completed + active seasons for this universe
             const { data: seasons, error: sErr } = await supabase
                 .from("seasons")
                 .select("id, year")
                 .eq("universe_id", universeId)
-                .eq("status", "completed")
+                .in("status", ["completed", "active"])
                 .order("year", { ascending: true });
             if (sErr) throw sErr;
 
@@ -248,12 +248,12 @@ export function useRaceWinDetails(universeId: string) {
     return useQuery({
         queryKey: historyKeys.raceWins(universeId),
         queryFn: async () => {
-            // 1. Completed seasons
+            // 1. Completed + active seasons
             const { data: seasons, error: sErr } = await supabase
                 .from("seasons")
                 .select("id, year")
                 .eq("universe_id", universeId)
-                .eq("status", "completed")
+                .in("status", ["completed", "active"])
                 .order("year", { ascending: true });
             if (sErr) throw sErr;
 

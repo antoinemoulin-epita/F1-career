@@ -316,6 +316,11 @@ function DriverRow({
                 </div>
             </Table.Cell>
             <Table.Cell>
+                <span className="text-sm text-tertiary">
+                    {driver.age != null ? `${driver.age} ans` : "—"}
+                </span>
+            </Table.Cell>
+            <Table.Cell>
                 <div className="flex items-center gap-1.5">
                     {showDriverRank && driver.is_first_driver === true && (
                         <Badge size="sm" color="brand" type="pill-color">
@@ -473,6 +478,7 @@ export default function DriversPage() {
             pilote: (d: DriverWithEffective) => d.full_name ?? "",
             equipe: (d: DriverWithEffective) =>
                 d.team_id ? teamMap.get(d.team_id)?.name ?? "" : "",
+            age: (d: DriverWithEffective) => d.age ?? 0,
             contrat: (d: DriverWithEffective) => d.contract_years_remaining ?? -1,
             note: (d: DriverWithEffective) => d.note,
             potentiel: (d: DriverWithEffective) =>
@@ -629,6 +635,7 @@ export default function DriversPage() {
                             <Table.Header>
                                 <Table.Head id="pilote" label="Pilote" isRowHeader allowsSorting />
                                 <Table.Head id="equipe" label="Equipe" allowsSorting />
+                                <Table.Head id="age" label="Age" allowsSorting />
                                 <Table.Head id="contrat" label="Contrat" allowsSorting />
                                 <Table.Head id="note" label="Note" allowsSorting />
                                 <Table.Head id="potentiel" label="Potentiel" allowsSorting />

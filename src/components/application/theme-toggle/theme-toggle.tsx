@@ -1,11 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon01 } from "@untitledui/icons";
 
 export function ThemeToggle() {
-    const { theme, setTheme } = useTheme();
-    const isDark = theme === "dark";
+    const { resolvedTheme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => setMounted(true), []);
+
+    const isDark = resolvedTheme === "dark";
+
+    if (!mounted) {
+        return (
+            <div className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-secondary">
+                <div className="size-5" />
+            </div>
+        );
+    }
 
     return (
         <button
