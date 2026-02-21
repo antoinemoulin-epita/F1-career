@@ -33,7 +33,8 @@ export type SeasonStatsData = {
 export type DriverEvolutionDisplay = {
     name: string;
     parts: string[];
-    totalNoteChange: number;
+    potentialChange: number;
+    noteChange: number;
 };
 
 export type RetireeData = {
@@ -179,9 +180,16 @@ export function generateEndSeasonMarkdown(
             lines.push("");
             lines.push("## Evolutions pilotes");
             for (const evo of data.driverEvolutions) {
-                const sign = evo.totalNoteChange > 0 ? "+" : "";
+                const changes: string[] = [];
+                if (evo.potentialChange !== 0) {
+                    changes.push(`${formatDelta(evo.potentialChange)} potentiel`);
+                }
+                if (evo.noteChange !== 0) {
+                    changes.push(`${formatDelta(evo.noteChange)} note`);
+                }
+                const changeSummary = changes.length > 0 ? changes.join(", ") : "—";
                 lines.push(
-                    `- **${evo.name}** : ${sign}${evo.totalNoteChange} note (${evo.parts.join(", ")})`,
+                    `- **${evo.name}** : ${changeSummary} (${evo.parts.join(", ")})`,
                 );
             }
         }

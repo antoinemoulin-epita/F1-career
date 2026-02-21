@@ -21,6 +21,8 @@ export const driverSchema = z.object({
     // Status
     is_rookie: z.boolean().optional(),
     is_retiring: z.boolean().optional(),
+    // Identite cross-saison
+    person_id: z.string().uuid().nullable().optional(),
     // Carriere
     world_titles: z.number().int().min(0).nullable().optional(),
     career_races: z.number().int().min(0).nullable().optional(),
@@ -48,6 +50,7 @@ export const driverFormDefaults: DriverFormValues = {
     contract_years_remaining: null,
     is_rookie: false,
     is_retiring: false,
+    person_id: null,
     world_titles: null,
     career_races: null,
     career_wins: null,

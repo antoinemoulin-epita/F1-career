@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useController, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useListData } from "react-stately";
@@ -11,10 +11,10 @@ import { TextArea } from "@/components/base/textarea/textarea";
 import { Select, type SelectItemType } from "@/components/base/select/select";
 import { MultiSelect } from "@/components/base/select/multi-select";
 import { useCreateNews, useUpdateNews } from "@/hooks/use-news";
-import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
+import { useCreateArc, useNarrativeArcs } from "@/hooks/use-narrative-arcs";
 import { usePersonIdentities, useTeamIdentities } from "@/hooks/use-staff";
 import { useNewsMentions } from "@/hooks/use-news-mentions";
-import { newsSchema, newsFormDefaults, type NewsFormValues } from "@/lib/validators";
+import { newsSchema, newsFormDefaults, narrativeArcFormDefaults, type NewsFormValues } from "@/lib/validators";
 import { newsTypeLabels } from "@/lib/constants/arc-labels";
 import { importanceItems } from "@/lib/constants/nationalities";
 import type { News } from "@/types";
@@ -146,6 +146,7 @@ interface NewsFormProps {
 export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSuccess, onCancel }: NewsFormProps) {
     const createNews = useCreateNews();
     const updateNews = useUpdateNews();
+    const createArc = useCreateArc();
     const { data: arcs } = useNarrativeArcs(universeId);
     const { data: personIdentities } = usePersonIdentities(universeId);
     const { data: teamIdentities } = useTeamIdentities(universeId);
@@ -184,6 +185,22 @@ export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSucc
 
     const isPending = createNews.isPending || updateNews.isPending;
 
+    // ─── Arc ComboBox state ─────────────────────────────────────────────
+    const [arcInputValue, setArcInputValue] = useState("");
+
+    // Initialize input for edit mode when arcs load
+    const initialArcName = useMemo(() => {
+        if (!news?.arc_id || !arcs) return null;
+        return arcs.find((a) => a.id === news.arc_id)?.name ?? null;
+    }, [news?.arc_id, arcs]);
+
+    useEffect(() => {
+        if (initialArcName && !arcInputValue) {
+            setArcInputValue(initialArcName);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialArcName]);
+
     const onSubmit = form.handleSubmit((values) => {
         if (isEdit) {
             updateNews.mutate(
@@ -200,10 +217,35 @@ export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSucc
 
     // Select items
     const newsTypeItems = Object.entries(newsTypeLabels).map(([id, label]) => ({ id, label }));
-    const arcItems = [
-        { id: "__none__", label: "Aucun" },
-        ...(arcs ?? []).map((a) => ({ id: a.id, label: a.name ?? "Sans nom" })),
-    ];
+    // Filtered arc items + inline create option
+    const arcComboItems = useMemo(() => {
+        const result: SelectItemType[] = [];
+        const query = arcInputValue.trim().toLowerCase();
+        const existing = (arcs ?? []).map((a) => ({ id: a.id, label: a.name ?? "Sans nom" }));
+
+        if (!query || "aucun".includes(query)) {
+            result.push({ id: "__none__", label: "Aucun" });
+        }
+
+        if (query) {
+            result.push(...existing.filter((a) => (a.label ?? "").toLowerCase().includes(query)));
+        } else {
+            result.push(...existing);
+        }
+
+        // Show "+ Creer" if ≥2 chars and no exact match
+        if (query.length >= 2) {
+            const exactMatch = existing.some((a) => (a.label ?? "").toLowerCase() === query);
+            if (!exactMatch) {
+                result.push({
+                    id: "__create__",
+                    label: `+ Creer « ${arcInputValue.trim()} »`,
+                });
+            }
+        }
+
+        return result;
+    }, [arcs, arcInputValue]);
 
     // Entity items for mentions
     const driverItems = useMemo(
@@ -230,6 +272,34 @@ export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSucc
     const newsTypeField = useController({ name: "news_type", control: form.control });
     const arcIdField = useController({ name: "arc_id", control: form.control });
     const contentField = useController({ name: "content", control: form.control });
+
+    // Handle arc selection including inline creation
+    const handleArcSelection = (key: Key | null) => {
+        if (key === "__create__") {
+            const name = arcInputValue.trim();
+            if (name.length >= 2) {
+                createArc.mutate(
+                    {
+                        universeId,
+                        form: { ...narrativeArcFormDefaults, name },
+                    },
+                    {
+                        onSuccess: (data) => {
+                            arcIdField.field.onChange(data.id);
+                            setArcInputValue(data.name);
+                        },
+                    },
+                );
+            }
+        } else if (key === "__none__" || key === null) {
+            arcIdField.field.onChange(null);
+            setArcInputValue("");
+        } else {
+            arcIdField.field.onChange(key as string);
+            const arc = (arcs ?? []).find((a) => a.id === key);
+            if (arc) setArcInputValue(arc.name);
+        }
+    };
 
     return (
         <form onSubmit={onSubmit}>
@@ -282,19 +352,18 @@ export function NewsForm({ seasonId, universeId, news, defaultAfterRound, onSucc
                         label="Apres le round"
                         placeholder="5"
                     />
-                    <Select
+                    <Select.ComboBox
                         label="Arc narratif"
-                        placeholder="Selectionner"
-                        items={arcItems}
+                        placeholder="Rechercher ou creer..."
+                        items={arcComboItems}
+                        inputValue={arcInputValue}
+                        onInputChange={setArcInputValue}
                         selectedKey={arcIdField.field.value ?? "__none__"}
-                        onSelectionChange={(key) =>
-                            arcIdField.field.onChange(
-                                key === "__none__" ? null : (key as string),
-                            )
-                        }
+                        onSelectionChange={handleArcSelection}
+                        shortcut={false}
                     >
                         {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
-                    </Select>
+                    </Select.ComboBox>
                 </Section>
 
                 {/* Mentions */}

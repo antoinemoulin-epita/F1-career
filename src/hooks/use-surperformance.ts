@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/use-standings";
 import { useDriverPredictions, useConstructorPredictions } from "@/hooks/use-predictions";
+import { useDrivers } from "@/hooks/use-drivers";
 import { useTeams } from "@/hooks/use-teams";
 import {
     calculateAllDriverSurperformances,
@@ -20,9 +21,19 @@ export function useSurperformance(seasonId: string) {
     const { data: constructorStandingsRaw, isLoading: csLoading } = useConstructorStandings(seasonId);
     const { data: driverPredictionsRaw, isLoading: dpLoading } = useDriverPredictions(seasonId);
     const { data: constructorPredictionsRaw, isLoading: cpLoading } = useConstructorPredictions(seasonId);
+    const { data: driversRaw, isLoading: driversLoading } = useDrivers(seasonId);
     const { data: teamsRaw, isLoading: teamsLoading } = useTeams(seasonId);
 
-    const isLoading = dsLoading || csLoading || dpLoading || cpLoading || teamsLoading;
+    const isLoading = dsLoading || csLoading || dpLoading || cpLoading || driversLoading || teamsLoading;
+
+    // Build driver age map from useDrivers (reliable, direct view query)
+    const driverAgeMap = useMemo(() => {
+        const map = new Map<string, number | null>();
+        driversRaw?.forEach((d) => {
+            if (d.id) map.set(d.id, d.age ?? null);
+        });
+        return map;
+    }, [driversRaw]);
 
     // Build team name map
     const teamNameMap = useMemo(() => {
@@ -59,19 +70,21 @@ export function useSurperformance(seasonId: string) {
 
         // ─── Driver surperformance inputs ────────────────────────────────
         const driverInputs: DriverSurperformanceInput[] = driverPredictionsRaw
-            .filter((p) => driverFinalPositionMap.has(p.driver_id))
+            .filter((p) => driverFinalPositionMap.has(p.driver_id) && p.driver != null)
             .map((p) => {
                 const driver = p.driver as {
                     full_name: string | null;
                     team_id: string | null;
-                    age: number | null;
                 } | null;
                 const final = driverFinalPositionMap.get(p.driver_id)!;
+                // Use driverAgeMap (from useDrivers, direct view query) instead of
+                // FK expansion age which can silently return null for some drivers
+                const age = driverAgeMap.get(p.driver_id) ?? null;
                 return {
                     driver_id: p.driver_id,
                     name: driver?.full_name ?? "",
                     team: final.teamName,
-                    age: driver?.age ?? null,
+                    age,
                     predicted_position: p.predicted_position,
                     final_position: final.position,
                 };
@@ -99,6 +112,7 @@ export function useSurperformance(seasonId: string) {
         driverStandingsRaw,
         constructorPredictionsRaw,
         constructorStandingsRaw,
+        driverAgeMap,
         teamNameMap,
     ]);
 

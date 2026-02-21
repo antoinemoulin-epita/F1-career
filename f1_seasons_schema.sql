@@ -527,16 +527,16 @@ FROM cars c;
 
 -- Vue: Pilotes avec note effective
 CREATE OR REPLACE VIEW v_drivers_with_effective AS
-SELECT 
+SELECT
     d.*,
     CONCAT(d.first_name, ' ', d.last_name) AS full_name,
-    CASE 
+    CASE
         WHEN d.years_in_team = 1 THEN -1
         WHEN d.years_in_team = 2 THEN 0
         ELSE 1
     END AS acclimatation,
     LEAST(
-        d.note + CASE 
+        d.note + CASE
             WHEN d.years_in_team = 1 THEN -1
             WHEN d.years_in_team = 2 THEN 0
             ELSE 1
@@ -544,8 +544,9 @@ SELECT
         COALESCE(d.potential_final, d.potential_max, 10) + 1,
         10
     ) AS effective_note,
-    EXTRACT(YEAR FROM NOW())::INTEGER - d.birth_year AS age
-FROM drivers d;
+    s.year - d.birth_year AS age
+FROM drivers d
+LEFT JOIN seasons s ON d.season_id = s.id;
 
 -- Vue: Classement pilotes actuel (dernier round)
 CREATE OR REPLACE VIEW v_current_standings_drivers AS

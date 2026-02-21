@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import {
     AlertCircle,
@@ -17,6 +17,7 @@ import {
     Target04,
     CurrencyDollar,
     FileCheck02,
+    Plus,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
@@ -32,7 +33,7 @@ import { useTeams } from "@/hooks/use-teams";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/use-standings";
 import { useNarrativeArcs } from "@/hooks/use-narrative-arcs";
 import { useSurperformance } from "@/hooks/use-surperformance";
-import { useArchiveSeason, type DriverEvolution, type TeamBudgetChange } from "@/hooks/use-end-season";
+import { useArchiveSeason, useCreateNextSeason, type DriverEvolution, type TeamBudgetChange, type SponsorEvaluation } from "@/hooks/use-end-season";
 import { useStaff } from "@/hooks/use-staff";
 import { staffRoleLabels } from "@/lib/validators/staff";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -130,7 +131,9 @@ export default function EndSeasonPage() {
     const { data: staffRaw } = useStaff(seasonId);
     const updateObjective = useUpdateSponsorObjective();
     const archiveSeason = useArchiveSeason();
+    const createNextSeason = useCreateNextSeason();
     const { copied, copy } = useClipboard();
+    const [nextSeasonId, setNextSeasonId] = useState<string | null>(null);
 
     const isLoading = seasonLoading || calendarLoading || driversLoading || teamsLoading || dsLoading || csLoading || surperfLoading;
 
@@ -166,7 +169,8 @@ export default function EndSeasonPage() {
     const drivers = driversRaw ?? [];
     const teams = teamsRaw ?? [];
 
-    // Champion bonus cap: max 3 titles
+    // Champion bonus cap: max 3 titles — design rule: a driver with 3+ titles
+    // no longer receives the +1 potential bonus to prevent runaway dominance
     const championDriverData = championDriver
         ? drivers.find((d) => d.id === championDriver.driver_id)
         : null;
@@ -227,25 +231,33 @@ export default function EndSeasonPage() {
         [drivers],
     );
 
-    // ─── Initialize toggles when data arrives ──────────────────────────
+    // ─── Initialize toggles when data arrives (Bug #8: use refs to prevent re-init) ──
+    const declineInitialized = useRef(false);
+    const progressionInitialized = useRef(false);
+    const rookieInitialized = useRef(false);
+    const budgetInitialized = useRef(false);
+
     useEffect(() => {
-        if (decliningDrivers.length > 0 && declineEnabled.size === 0) {
+        if (decliningDrivers.length > 0 && !declineInitialized.current) {
+            declineInitialized.current = true;
             const map = new Map<string, boolean>();
             decliningDrivers.forEach((d) => { if (d.id) map.set(d.id, true); });
             setDeclineEnabled(map);
         }
-    }, [decliningDrivers, declineEnabled.size]);
+    }, [decliningDrivers]);
 
     useEffect(() => {
-        if (progressingDrivers.length > 0 && progressionEnabled.size === 0) {
+        if (progressingDrivers.length > 0 && !progressionInitialized.current) {
+            progressionInitialized.current = true;
             const map = new Map<string, boolean>();
             progressingDrivers.forEach((d) => { if (d.id) map.set(d.id, true); });
             setProgressionEnabled(map);
         }
-    }, [progressingDrivers, progressionEnabled.size]);
+    }, [progressingDrivers]);
 
     useEffect(() => {
-        if (rookies.length > 0 && rookieReveals.size === 0) {
+        if (rookies.length > 0 && !rookieInitialized.current) {
+            rookieInitialized.current = true;
             const map = new Map<string, number | null>();
             rookies.forEach((d) => {
                 if (d.id) {
@@ -257,17 +269,18 @@ export default function EndSeasonPage() {
             });
             setRookieReveals(map);
         }
-    }, [rookies, surperfData, rookieReveals.size]);
+    }, [rookies, surperfData]);
 
     useEffect(() => {
-        if (surperfData && budgetOverrides.size === 0) {
+        if (surperfData && !budgetInitialized.current) {
+            budgetInitialized.current = true;
             const map = new Map<string, boolean>();
             surperfData.teams.forEach((t) => {
                 if (t.budget_change !== 0) map.set(t.team_id, true);
             });
             setBudgetOverrides(map);
         }
-    }, [surperfData, budgetOverrides.size]);
+    }, [surperfData]);
 
     // ─── Build final evolutions for validation ──────────────────────────
     const driverEvolutions = useMemo<DriverEvolution[]>(() => {
@@ -326,6 +339,15 @@ export default function EndSeasonPage() {
         return map;
     }, [seasonWinsRaw, drivers]);
 
+    // Build driver → team mapping for sponsor evaluation (Bug #4)
+    const driverTeamMap = useMemo(() => {
+        const map = new Map<string, string>();
+        drivers.forEach((d) => {
+            if (d.id && d.team_id) map.set(d.id, d.team_id);
+        });
+        return map;
+    }, [drivers]);
+
     const objectiveEvaluations = useMemo<Map<string, EvaluationResult>>(() => {
         const results = new Map<string, EvaluationResult>();
         if (!driverStandingsRaw || !constructorStandingsRaw) return results;
@@ -333,6 +355,7 @@ export default function EndSeasonPage() {
             driverStandings: driverStandingsRaw,
             constructorStandings: constructorStandingsRaw,
             teamWinCircuits,
+            driverTeamMap,
         };
         for (const obj of sponsorObjectives) {
             results.set(obj.id, evaluateObjective(obj, ctx));
@@ -382,18 +405,22 @@ export default function EndSeasonPage() {
 
         const driverEvolutionDisplays: DriverEvolutionDisplay[] = driverEvolutions.map((evo) => {
             const d = drivers.find((dr) => dr.id === evo.driver_id);
-            const total = evo.potential_change + evo.decline + evo.progression + evo.champion_bonus;
+            const potDelta = evo.rookie_reveal != null
+                ? 0
+                : evo.decline + evo.champion_bonus + evo.potential_change;
+            const noteDelta = evo.progression;
             const parts: string[] = [];
-            if (evo.champion_bonus > 0) parts.push("champion +1");
-            if (evo.potential_change > 0) parts.push(`surperf +${evo.potential_change}`);
-            if (evo.potential_change < 0) parts.push(`surperf ${evo.potential_change}`);
-            if (evo.decline < 0) parts.push("declin -1");
-            if (evo.progression > 0) parts.push("progression +1");
+            if (evo.champion_bonus > 0) parts.push("champion +1 pot");
+            if (evo.potential_change > 0) parts.push(`surperf +${evo.potential_change} pot`);
+            if (evo.potential_change < 0) parts.push(`surperf ${evo.potential_change} pot`);
+            if (evo.decline < 0) parts.push("declin -1 pot");
+            if (evo.progression > 0) parts.push("progression +1 note");
             if (evo.rookie_reveal != null) parts.push(`potentiel revele: ${evo.rookie_reveal}`);
             return {
                 name: d?.full_name ?? "",
                 parts,
-                totalNoteChange: total,
+                potentialChange: potDelta,
+                noteChange: noteDelta,
             };
         });
 
@@ -473,6 +500,18 @@ export default function EndSeasonPage() {
     const handleArchive = () => {
         if (!season) return;
 
+        // Bug #10: Build sponsor evaluations from objectiveEvaluations map
+        const sponsorEvaluations: SponsorEvaluation[] = sponsorObjectives.map((obj) => {
+            const evaluation = objectiveEvaluations.get(obj.id);
+            return {
+                objective_id: obj.id,
+                is_met: obj.objective_type === "custom"
+                    ? obj.is_met ?? false
+                    : evaluation?.is_met ?? false,
+                evaluated_value: evaluation?.evaluated_value ?? null,
+            };
+        });
+
         archiveSeason.mutate(
             {
                 seasonId,
@@ -491,6 +530,7 @@ export default function EndSeasonPage() {
                 driverEvolutions,
                 teamBudgetChanges,
                 contractDecrements,
+                sponsorEvaluations,
             },
             {
                 onSuccess: () => setIsArchived(true),
@@ -515,6 +555,40 @@ export default function EndSeasonPage() {
     };
 
     if (isLoading) return <PageLoading label="Chargement des donnees..." />;
+
+    // ─── Guard: season already archived (Bug #13) ────────────────────
+    if (season?.status === "completed") {
+        return (
+            <div>
+                <div className="mb-6">
+                    <Breadcrumbs
+                        items={[
+                            { label: "Saison", href: `/season/${seasonId}` },
+                            { label: "Fin de saison" },
+                        ]}
+                    />
+                </div>
+                <div className="flex min-h-60 flex-col items-center justify-center gap-4">
+                    <FeaturedIcon icon={CheckCircle} color="success" theme="light" size="lg" />
+                    <div className="text-center">
+                        <h2 className="text-lg font-semibold text-primary">
+                            Saison deja archivee
+                        </h2>
+                        <p className="mt-1 text-sm text-tertiary">
+                            Cette saison a deja ete archivee. Aucune modification supplementaire n'est possible.
+                        </p>
+                    </div>
+                    <Button
+                        href={`/season/${seasonId}`}
+                        size="md"
+                        color="primary"
+                    >
+                        Retour a la saison
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     // ─── End-season guard: check all races completed ─────────────────
 
@@ -673,6 +747,19 @@ export default function EndSeasonPage() {
                 {/* Step 2: Surperformances */}
                 <Tabs.Panel id="surperformance" className="mt-6">
                     <div className="space-y-4">
+                        {/* Bug #9: Warning if predictions are missing */}
+                        {(!surperfData || surperfData.drivers.length === 0) && (
+                            <div className="flex items-center gap-3 rounded-xl border border-secondary bg-warning-secondary p-4">
+                                <FeaturedIcon icon={AlertCircle} color="warning" theme="light" size="sm" />
+                                <div>
+                                    <p className="text-sm font-semibold text-primary">Predictions manquantes</p>
+                                    <p className="text-sm text-tertiary">
+                                        Aucune prediction n'a ete enregistree pour cette saison. Les surperformances ne peuvent pas etre calculees.
+                                        Verifiez que les predictions ont ete saisies et verrouillees.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <SectionCard title="Surperformance pilotes" icon={Zap} color="brand">
                             {surperfData && surperfData.drivers.length > 0 ? (
                                 <div className="overflow-auto">
@@ -1188,13 +1275,16 @@ export default function EndSeasonPage() {
                                             <div className="mt-1 space-y-1">
                                                 {driverEvolutions.map((evo) => {
                                                     const d = drivers.find((dr) => dr.id === evo.driver_id);
-                                                    const total = evo.potential_change + evo.decline + evo.progression + evo.champion_bonus;
+                                                    const potDelta = evo.rookie_reveal != null
+                                                        ? 0
+                                                        : evo.decline + evo.champion_bonus + evo.potential_change;
+                                                    const noteDelta = evo.progression;
                                                     const parts: string[] = [];
-                                                    if (evo.champion_bonus > 0) parts.push("champion +1");
-                                                    if (evo.potential_change > 0) parts.push(`surperf +${evo.potential_change}`);
-                                                    if (evo.potential_change < 0) parts.push(`surperf ${evo.potential_change}`);
-                                                    if (evo.decline < 0) parts.push("declin -1");
-                                                    if (evo.progression > 0) parts.push("progression +1");
+                                                    if (evo.champion_bonus > 0) parts.push("champion +1 pot");
+                                                    if (evo.potential_change > 0) parts.push(`surperf +${evo.potential_change} pot`);
+                                                    if (evo.potential_change < 0) parts.push(`surperf ${evo.potential_change} pot`);
+                                                    if (evo.decline < 0) parts.push("declin -1 pot");
+                                                    if (evo.progression > 0) parts.push("progression +1 note");
                                                     if (evo.rookie_reveal != null) parts.push(`potentiel revele: ${evo.rookie_reveal}`);
 
                                                     return (
@@ -1202,7 +1292,8 @@ export default function EndSeasonPage() {
                                                             <span className="text-primary">{d?.full_name ?? evo.driver_id}</span>
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-xs text-tertiary">{parts.join(", ")}</span>
-                                                                {total !== 0 && <EffectBadge value={total} label="note" />}
+                                                                {potDelta !== 0 && <EffectBadge value={potDelta} label="pot" />}
+                                                                {noteDelta !== 0 && <EffectBadge value={noteDelta} label="note" />}
                                                             </div>
                                                         </div>
                                                     );
@@ -1341,11 +1432,80 @@ export default function EndSeasonPage() {
                                 </pre>
                             </div>
 
+                            {/* Create next season */}
+                            <div className="rounded-xl border border-secondary p-5">
+                                <div className="mb-4 flex items-center gap-3">
+                                    <FeaturedIcon icon={Plus} color="brand" theme="light" size="sm" />
+                                    <h3 className="text-md font-semibold text-primary">Saison suivante</h3>
+                                </div>
+
+                                {nextSeasonId ? (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3 rounded-lg bg-success-secondary p-3">
+                                            <FeaturedIcon icon={CheckCircle} color="success" theme="light" size="sm" />
+                                            <div>
+                                                <p className="text-sm font-semibold text-primary">
+                                                    Saison {season.year + 1} creee avec succes
+                                                </p>
+                                                <p className="text-sm text-tertiary">
+                                                    Tous les pilotes, equipes, voitures et staff ont ete dupliques.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            size="md"
+                                            color="primary"
+                                            iconTrailing={ArrowRight}
+                                            href={`/season/${nextSeasonId}`}
+                                        >
+                                            Aller a la saison {season.year + 1}
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <p className="text-sm text-tertiary">
+                                            Dupliquer les pilotes, equipes, voitures et staff vers une nouvelle saison en
+                                            preparation. Les pilotes et staff retraites ne seront pas inclus. Les stats de
+                                            carriere seront mises a jour.
+                                        </p>
+                                        <Button
+                                            size="md"
+                                            color="primary"
+                                            iconLeading={Plus}
+                                            onClick={() =>
+                                                createNextSeason.mutate(
+                                                    {
+                                                        seasonId,
+                                                        universeId: season.universe_id,
+                                                        year: season.year,
+                                                    },
+                                                    {
+                                                        onSuccess: (data) => setNextSeasonId(data.newSeasonId),
+                                                    },
+                                                )
+                                            }
+                                            isLoading={createNextSeason.isPending}
+                                            isDisabled={createNextSeason.isPending || !!nextSeasonId}
+                                        >
+                                            Creer la saison {season.year + 1}
+                                        </Button>
+                                        {createNextSeason.isError && (
+                                            <div className="flex items-center gap-2 rounded-lg bg-error-secondary p-3">
+                                                <AlertCircle className="size-4 text-fg-error-secondary" />
+                                                <p className="text-sm text-error-primary">
+                                                    Erreur : {(createNextSeason.error as Error).message}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Go back to season */}
                             <div className="flex justify-end">
                                 <Button
                                     size="md"
-                                    color="primary"
+                                    color={nextSeasonId ? "secondary" : "primary"}
                                     iconLeading={ArrowRight}
                                     href={`/season/${seasonId}`}
                                 >
@@ -1377,6 +1537,7 @@ export default function EndSeasonPage() {
                             iconLeading={CheckCircle}
                             onClick={handleArchive}
                             isLoading={archiveSeason.isPending}
+                            isDisabled={archiveSeason.isPending || isArchived}
                         >
                             Archiver la saison
                         </Button>

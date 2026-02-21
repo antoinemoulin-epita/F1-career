@@ -68,6 +68,7 @@ function normalizeForm(form: DriverFormValues) {
         career_poles: form.career_poles ?? null,
         career_podiums: form.career_podiums ?? null,
         career_points: form.career_points ?? null,
+        person_id: form.person_id ?? null,
     };
 }
 

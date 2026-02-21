@@ -11,6 +11,7 @@ import {
     ChevronRight,
     Tool01,
     CloudRaining01,
+    Download01,
     File06,
     Flag06,
     Target04,
@@ -34,7 +35,6 @@ import {
     ModalOverlay,
 } from "@/components/application/modals/modal";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
-import { NewsForm } from "@/components/forms/news-form";
 import { useSeason, useResetSeason } from "@/hooks/use-seasons";
 import { useTableSort } from "@/hooks/use-table-sort";
 import { useCalendar } from "@/hooks/use-calendar";
@@ -104,15 +104,16 @@ const statusLabel: Record<SeasonStatus, string> = {
 
 function RainBadge({ probability }: { probability: number | null }) {
     const value = probability ?? 0;
-    let color: "gray" | "blue" | "brand" | "warning" | "error" = "gray";
-    if (value >= 60) color = "error";
-    else if (value >= 40) color = "warning";
-    else if (value >= 20) color = "blue";
+    let color: "gray" | "blue" | "warning" | "error" = "gray";
+    let label = "Sec";
+    if (value >= 50) { color = "error"; label = "50%"; }
+    else if (value >= 25) { color = "warning"; label = "25%"; }
+    else if (value >= 10) { color = "blue"; label = "10%"; }
 
     return (
         <Badge size="sm" color={color} type="pill-color">
             <CloudRaining01 className="size-3" aria-hidden="true" />
-            {value}%
+            {label}
         </Badge>
     );
 }
@@ -206,19 +207,29 @@ function NextGPCard({
 
 // ─── SeasonCompletedCard ────────────────────────────────────────────────────
 
-function SeasonCompletedCard() {
+function SeasonCompletedCard({ seasonId }: { seasonId: string }) {
     return (
         <div className="rounded-xl border border-secondary bg-primary p-5">
-            <div className="flex items-center gap-3">
-                <FeaturedIcon icon={Trophy01} color="success" theme="light" size="sm" />
-                <div>
-                    <h2 className="text-sm font-semibold text-primary">
-                        Saison terminee
-                    </h2>
-                    <p className="text-sm text-tertiary">
-                        Tous les Grands Prix ont ete completes.
-                    </p>
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <FeaturedIcon icon={Trophy01} color="success" theme="light" size="sm" />
+                    <div>
+                        <h2 className="text-sm font-semibold text-primary">
+                            Saison terminee
+                        </h2>
+                        <p className="text-sm text-tertiary">
+                            Tous les Grands Prix ont ete completes.
+                        </p>
+                    </div>
                 </div>
+                <Button
+                    href={`/season/${seasonId}/end-season`}
+                    size="md"
+                    color="primary"
+                    iconTrailing={ChevronRight}
+                >
+                    Fin de saison
+                </Button>
             </div>
         </div>
     );
@@ -257,14 +268,15 @@ function DriverStandingsSection({
     standings: DriverStandingRow[];
     leaderPoints: number;
 }) {
-    const top10 = standings.slice(0, 10);
+    const [showAll, setShowAll] = useState(false);
+    const displayed = showAll ? standings : standings.slice(0, 10);
     const hasMore = standings.length > 10;
 
     const { sortDescriptor, onSortChange, sortedItems } =
-        useTableSort(top10, driverStandingColumns);
+        useTableSort(displayed, driverStandingColumns);
 
     const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
-    const selectedCount = getSelectedCount(selectedKeys, top10.length);
+    const selectedCount = getSelectedCount(selectedKeys, displayed.length);
 
     return (
         <TableCard.Root>
@@ -373,9 +385,15 @@ function DriverStandingsSection({
             </Table>
             {hasMore && (
                 <div className="border-t border-secondary px-4 py-3 text-center">
-                    <span className="text-sm text-tertiary">
-                        Voir les {standings.length} pilotes
-                    </span>
+                    <button
+                        type="button"
+                        className="text-sm font-medium text-brand-secondary transition duration-100 ease-linear hover:text-brand-secondary_hover"
+                        onClick={() => setShowAll((prev) => !prev)}
+                    >
+                        {showAll
+                            ? "Voir le top 10"
+                            : `Voir les ${standings.length} pilotes`}
+                    </button>
                 </div>
             )}
         </TableCard.Root>
@@ -763,27 +781,9 @@ export default function SeasonDashboardPage() {
     const leaderDriverPts = driverStandings?.[0]?.points ?? 0;
     const leaderTeamPts = constructorStandings?.[0]?.points ?? 0;
 
-    // ─── News auto-modal ────────────────────────────────────────────────
-    const lastCompletedRound = useMemo(() => {
-        const entries = calendar ?? [];
-        const completed = entries.filter((e) => e.status === "completed");
-        if (completed.length === 0) return null;
-        return Math.max(...completed.map((e) => e.round_number));
-    }, [calendar]);
-
-    const hasNewsForLastRound = useMemo(() => {
-        if (lastCompletedRound == null || !newsData) return true;
-        return newsData.some((n) => n.after_round === lastCompletedRound);
-    }, [lastCompletedRound, newsData]);
-
     const [isPointsModalOpen, setIsPointsModalOpen] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const resetSeason = useResetSeason();
-    const [newsModalDismissed, setNewsModalDismissed] = useState<Set<number>>(new Set());
-    const showNewsModal =
-        lastCompletedRound != null &&
-        !hasNewsForLastRound &&
-        !newsModalDismissed.has(lastCompletedRound);
 
     if (seasonLoading || calendarLoading) return <PageLoading label="Chargement de la saison..." />;
 
@@ -834,6 +834,16 @@ export default function SeasonDashboardPage() {
                             onClick={() => setIsResetModalOpen(true)}
                         >
                             Reinitialiser
+                        </Button>
+                    )}
+                    {completedCount > 0 && (
+                        <Button
+                            size="sm"
+                            color="secondary"
+                            iconLeading={Download01}
+                            href={`/season/${seasonId}/export`}
+                        >
+                            Export
                         </Button>
                     )}
                     <Button
@@ -920,7 +930,7 @@ export default function SeasonDashboardPage() {
             {/* Next GP or Season completed */}
             <div className="mt-6">
                 {allCompleted ? (
-                    <SeasonCompletedCard />
+                    <SeasonCompletedCard seasonId={seasonId} />
                 ) : nextGP ? (
                     <NextGPCard entry={nextGP} seasonId={seasonId} />
                 ) : null}
@@ -1012,65 +1022,6 @@ export default function SeasonDashboardPage() {
                 onOpenChange={setIsPointsModalOpen}
             />
 
-            {/* News auto-modal */}
-            {showNewsModal && lastCompletedRound != null && (
-                <DialogTrigger
-                    isOpen={showNewsModal}
-                    onOpenChange={(open) => {
-                        if (!open) {
-                            setNewsModalDismissed((prev) => {
-                                const next = new Set(prev);
-                                next.add(lastCompletedRound);
-                                return next;
-                            });
-                        }
-                    }}
-                >
-                    <ModalOverlay>
-                        <Modal className="max-w-2xl">
-                            <Dialog>
-                                <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
-                                    <div className="mb-5 flex items-start gap-4">
-                                        <FeaturedIcon
-                                            icon={File06}
-                                            color="brand"
-                                            theme="light"
-                                            size="md"
-                                        />
-                                        <div>
-                                            <h2 className="text-lg font-semibold text-primary">
-                                                News apres le GP {lastCompletedRound}
-                                            </h2>
-                                            <p className="mt-1 text-sm text-tertiary">
-                                                Aucune news pour ce round. Ajoutez-en une maintenant.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <NewsForm
-                                        seasonId={seasonId}
-                                        universeId={season.universe_id}
-                                        defaultAfterRound={lastCompletedRound}
-                                        onSuccess={() => {
-                                            setNewsModalDismissed((prev) => {
-                                                const next = new Set(prev);
-                                                next.add(lastCompletedRound);
-                                                return next;
-                                            });
-                                        }}
-                                        onCancel={() => {
-                                            setNewsModalDismissed((prev) => {
-                                                const next = new Set(prev);
-                                                next.add(lastCompletedRound);
-                                                return next;
-                                            });
-                                        }}
-                                    />
-                                </div>
-                            </Dialog>
-                        </Modal>
-                    </ModalOverlay>
-                </DialogTrigger>
-            )}
         </div>
     );
 }

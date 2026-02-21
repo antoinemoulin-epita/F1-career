@@ -9,6 +9,7 @@ import {
     Plus,
     Trash02,
     Upload01,
+    Zap,
 } from "@untitledui/icons";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
@@ -34,6 +35,7 @@ import { useSeason } from "@/hooks/use-seasons";
 import { newsImportSchema, type NewsImportValues } from "@/lib/validators/news-import";
 import type { NewsFormValues } from "@/lib/validators";
 import { newsTypeLabels, newsTypeBadgeColor } from "@/lib/constants/arc-labels";
+import { cx } from "@/utils/cx";
 import type { News } from "@/types";
 
 // ─── CreateNewsDialog ───────────────────────────────────────────────────────
@@ -92,50 +94,45 @@ function EditNewsDialog({
     seasonId,
     universeId,
     news,
-    isOpen,
-    onOpenChange,
+    onClose,
 }: {
     seasonId: string;
     universeId: string;
     news: News;
-    isOpen: boolean;
-    onOpenChange: (open: boolean) => void;
+    onClose: () => void;
 }) {
     return (
-        <DialogTrigger isOpen={isOpen} onOpenChange={onOpenChange}>
-            <span className="hidden" />
-            <ModalOverlay>
-                <Modal className="max-w-lg">
-                    <Dialog>
-                        <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
-                            <div className="mb-5 flex items-start gap-4">
-                                <FeaturedIcon
-                                    icon={Edit05}
-                                    color="brand"
-                                    theme="light"
-                                    size="md"
-                                />
-                                <div>
-                                    <h2 className="text-lg font-semibold text-primary">
-                                        Modifier la news
-                                    </h2>
-                                    <p className="mt-1 text-sm text-tertiary">
-                                        Modifiez les details de cette actualite.
-                                    </p>
-                                </div>
-                            </div>
-                            <NewsForm
-                                seasonId={seasonId}
-                                universeId={universeId}
-                                news={news}
-                                onSuccess={() => onOpenChange(false)}
-                                onCancel={() => onOpenChange(false)}
+        <ModalOverlay isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
+            <Modal className="max-w-lg">
+                <Dialog>
+                    <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
+                        <div className="mb-5 flex items-start gap-4">
+                            <FeaturedIcon
+                                icon={Edit05}
+                                color="brand"
+                                theme="light"
+                                size="md"
                             />
+                            <div>
+                                <h2 className="text-lg font-semibold text-primary">
+                                    Modifier la news
+                                </h2>
+                                <p className="mt-1 text-sm text-tertiary">
+                                    Modifiez les details de cette actualite.
+                                </p>
+                            </div>
                         </div>
-                    </Dialog>
-                </Modal>
-            </ModalOverlay>
-        </DialogTrigger>
+                        <NewsForm
+                            seasonId={seasonId}
+                            universeId={universeId}
+                            news={news}
+                            onSuccess={onClose}
+                            onCancel={onClose}
+                        />
+                    </div>
+                </Dialog>
+            </Modal>
+        </ModalOverlay>
     );
 }
 
@@ -144,71 +141,66 @@ function EditNewsDialog({
 function DeleteNewsDialog({
     seasonId,
     news,
-    isOpen,
-    onOpenChange,
+    onClose,
 }: {
     seasonId: string;
     news: News;
-    isOpen: boolean;
-    onOpenChange: (open: boolean) => void;
+    onClose: () => void;
 }) {
     const deleteNews = useDeleteNews();
 
     const handleDelete = () => {
         deleteNews.mutate(
             { id: news.id, seasonId },
-            { onSuccess: () => onOpenChange(false) },
+            { onSuccess: onClose },
         );
     };
 
     return (
-        <DialogTrigger isOpen={isOpen} onOpenChange={onOpenChange}>
-            <span className="hidden" />
-            <ModalOverlay>
-                <Modal className="max-w-md">
-                    <Dialog>
-                        <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
-                            <div className="mb-5">
-                                <FeaturedIcon
-                                    icon={AlertCircle}
-                                    color="error"
-                                    theme="light"
-                                    size="md"
-                                />
-                            </div>
-                            <h2 className="text-lg font-semibold text-primary">
-                                Supprimer la news
-                            </h2>
-                            <p className="mt-1 text-sm text-tertiary">
-                                Etes-vous sur de vouloir supprimer{" "}
-                                <span className="font-medium text-primary">
-                                    {news.headline}
-                                </span>
-                                ? Cette action est irreversible.
-                            </p>
-
-                            <div className="mt-8 flex justify-end gap-3">
-                                <Button
-                                    size="md"
-                                    color="secondary"
-                                    onClick={() => onOpenChange(false)}
-                                >
-                                    Annuler
-                                </Button>
-                                <Button
-                                    size="md"
-                                    color="primary-destructive"
-                                    onClick={handleDelete}
-                                    isLoading={deleteNews.isPending}
-                                >
-                                    Supprimer
-                                </Button>
-                            </div>
+        <ModalOverlay isOpen onOpenChange={(open) => { if (!open) onClose(); }}>
+            <Modal className="max-w-md">
+                <Dialog>
+                    <div className="w-full rounded-xl bg-primary p-6 shadow-xl">
+                        <div className="mb-5">
+                            <FeaturedIcon
+                                icon={AlertCircle}
+                                color="error"
+                                theme="light"
+                                size="md"
+                            />
                         </div>
-                    </Dialog>
-                </Modal>
-            </ModalOverlay>
-        </DialogTrigger>
+                        <h2 className="text-lg font-semibold text-primary">
+                            Supprimer la news
+                        </h2>
+                        <p className="mt-1 text-sm text-tertiary">
+                            Etes-vous sur de vouloir supprimer{" "}
+                            <span className="font-medium text-primary">
+                                {news.headline}
+                            </span>
+                            ? Cette action est irreversible.
+                        </p>
+
+                        <div className="mt-8 flex justify-end gap-3">
+                            <Button
+                                size="md"
+                                color="secondary"
+                                onClick={onClose}
+                            >
+                                Annuler
+                            </Button>
+                            <Button
+                                size="md"
+                                color="primary-destructive"
+                                onClick={handleDelete}
+                                isLoading={deleteNews.isPending}
+                            >
+                                Supprimer
+                            </Button>
+                        </div>
+                    </div>
+                </Dialog>
+            </Modal>
+        </ModalOverlay>
     );
 }
 
@@ -233,6 +225,73 @@ function getMentionHref(mention: MentionInfo): string {
     }
 }
 
+// ─── Newspaper UI components ────────────────────────────────────────────────
+
+function NewspaperMasthead({ year, total }: { year: number; total: number }) {
+    return (
+        <div className="mb-8">
+            {/* Double red rule - top */}
+            <div className="mb-3 flex flex-col gap-0.5">
+                <div className="h-1 bg-brand-600" />
+                <div className="h-px bg-brand-600" />
+            </div>
+
+            <div className="flex items-end justify-between">
+                <div>
+                    <h1 className="font-serif text-display-md font-bold uppercase tracking-tight text-primary">
+                        Paddock Tribune
+                    </h1>
+                    <p className="font-serif text-sm italic text-tertiary">
+                        Le journal officiel du paddock
+                    </p>
+                </div>
+                <div className="text-right">
+                    <p className="font-serif text-sm font-semibold text-secondary">
+                        Saison {year}
+                    </p>
+                    <p className="text-xs text-tertiary">
+                        {total} article{total !== 1 ? "s" : ""}
+                    </p>
+                </div>
+            </div>
+
+            {/* Double red rule - bottom */}
+            <div className="mt-3 flex flex-col gap-0.5">
+                <div className="h-px bg-brand-600" />
+                <div className="h-1 bg-brand-600" />
+            </div>
+        </div>
+    );
+}
+
+function RoundEditionHeader({ round, gpCount }: { round: number | null; gpCount?: number | null }) {
+    const label =
+        round != null && round > 0
+            ? gpCount != null && round >= gpCount
+                ? "Post-saison"
+                : `Edition Round ${round}`
+            : "Pre-saison";
+
+    return (
+        <div className="flex items-center gap-4 py-2">
+            <div className="h-px flex-1 bg-border-secondary" />
+            <span className="font-serif text-xs font-semibold uppercase tracking-widest text-tertiary">
+                — {label} —
+            </span>
+            <div className="h-px flex-1 bg-border-secondary" />
+        </div>
+    );
+}
+
+const importanceBarColor: Record<number, string> = {
+    5: "bg-brand-600",
+    4: "bg-brand-500",
+    3: "bg-brand-400",
+    2: "bg-brand-200",
+    1: "bg-brand-100",
+    0: "bg-brand-100",
+};
+
 // ─── NewsCard ───────────────────────────────────────────────────────────────
 
 function NewsCard({
@@ -252,72 +311,109 @@ function NewsCard({
 }) {
     const typeKey = news.news_type ?? "other";
     const importance = news.importance ?? 0;
+    const isFlash = importance >= 5;
 
     return (
-        <div className="flex items-start justify-between gap-3 rounded-xl border border-secondary bg-primary p-4 transition duration-100 ease-linear hover:border-brand hover:bg-primary_hover">
-            <a href={`/season/${seasonId}/news/${news.id}`} className="min-w-0 flex-1">
-                <p className="font-medium text-primary">{news.headline}</p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <Badge
-                        size="sm"
-                        color={newsTypeBadgeColor[typeKey] ?? "gray"}
-                        type="pill-color"
-                    >
-                        {newsTypeLabels[typeKey] ?? typeKey}
-                    </Badge>
-                    <span className="text-xs text-tertiary">
-                        {Array.from({ length: 5 }, (_, i) => (
-                            <span
-                                key={i}
-                                className={
-                                    i < importance
-                                        ? "text-warning-primary"
-                                        : "text-quaternary"
-                                }
-                            >
-                                ★
-                            </span>
-                        ))}
-                    </span>
-                    {arcName && (
-                        <Badge size="sm" color="brand" type="pill-color">
-                            {arcName}
-                        </Badge>
-                    )}
-                    {mentions.map((mention) => (
-                        <Link
-                            key={`${mention.entityType}-${mention.entityId}`}
-                            href={getMentionHref(mention)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="transition duration-100 ease-linear hover:opacity-80"
-                        >
-                            <Badge size="sm" color="blue" type="pill-color">
-                                {mention.name}
-                            </Badge>
-                        </Link>
-                    ))}
-                </div>
-                {news.content && (
-                    <p className="mt-2 line-clamp-2 text-sm text-tertiary">
-                        {news.content}
-                    </p>
+        <div className="flex">
+            {/* Vertical importance bar */}
+            <div
+                className={cx(
+                    "w-1 shrink-0 rounded-l-xl",
+                    importanceBarColor[importance] ?? "bg-brand-100",
                 )}
-            </a>
-            <Dropdown.Root>
-                <Dropdown.DotsButton />
-                <Dropdown.Popover>
-                    <Dropdown.Menu
-                        onAction={(key) => {
-                            if (key === "edit") onEdit();
-                            if (key === "delete") onDelete();
-                        }}
+            />
+
+            {/* Card body */}
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-3 rounded-r-xl border border-l-0 border-secondary bg-primary p-4 transition duration-100 ease-linear hover:bg-primary_hover">
+                <a
+                    href={`/season/${seasonId}/news/${news.id}`}
+                    className="min-w-0 flex-1"
+                >
+                    {isFlash && (
+                        <div className="mb-1 flex items-center gap-1">
+                            <Zap className="size-3.5 text-brand-600" />
+                            <span className="font-serif text-xs font-bold uppercase tracking-wider text-brand-600">
+                                Flash Info
+                            </span>
+                        </div>
+                    )}
+
+                    <p
+                        className={cx(
+                            "font-serif text-primary",
+                            isFlash
+                                ? "text-lg font-bold"
+                                : importance >= 3
+                                  ? "text-md font-semibold"
+                                  : "text-sm font-medium",
+                        )}
                     >
-                        <Dropdown.Item id="edit" icon={Edit05} label="Modifier" />
-                        <Dropdown.Separator />
-                        <Dropdown.Item id="delete" icon={Trash02} label="Supprimer" />
-                    </Dropdown.Menu>
-                </Dropdown.Popover>
-            </Dropdown.Root>
+                        {news.headline}
+                    </p>
+
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <Badge
+                            size="sm"
+                            color={newsTypeBadgeColor[typeKey] ?? "gray"}
+                            type="pill-color"
+                        >
+                            {newsTypeLabels[typeKey] ?? typeKey}
+                        </Badge>
+                        <span className="text-xs text-tertiary">
+                            {Array.from({ length: 5 }, (_, i) => (
+                                <span
+                                    key={i}
+                                    className={
+                                        i < importance
+                                            ? "text-warning-primary"
+                                            : "text-quaternary"
+                                    }
+                                >
+                                    ★
+                                </span>
+                            ))}
+                        </span>
+                        {arcName && (
+                            <Badge size="sm" color="brand" type="pill-color">
+                                {arcName}
+                            </Badge>
+                        )}
+                        {mentions.map((mention) => (
+                            <Link
+                                key={`${mention.entityType}-${mention.entityId}`}
+                                href={getMentionHref(mention)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="transition duration-100 ease-linear hover:opacity-80"
+                            >
+                                <Badge size="sm" color="blue" type="pill-color">
+                                    {mention.name}
+                                </Badge>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {news.content && (
+                        <p className="mt-2 line-clamp-2 text-sm text-tertiary">
+                            {news.content}
+                        </p>
+                    )}
+                </a>
+                <Dropdown.Root>
+                    <Dropdown.DotsButton />
+                    <Dropdown.Popover>
+                        <Dropdown.Menu
+                            onAction={(key) => {
+                                if (key === "edit") onEdit();
+                                if (key === "delete") onDelete();
+                            }}
+                        >
+                            <Dropdown.Item id="edit" icon={Edit05} label="Modifier" />
+                            <Dropdown.Separator />
+                            <Dropdown.Item id="delete" icon={Trash02} label="Supprimer" />
+                        </Dropdown.Menu>
+                    </Dropdown.Popover>
+                </Dropdown.Root>
+            </div>
         </div>
     );
 }
@@ -350,7 +446,7 @@ function buildNewsFields(arcNames: string[]) {
             name: "news_type",
             required: true,
             description:
-                "Type : transfer, technical, sponsor, regulation, injury, retirement, other",
+                "Type : transfer, technical, sponsor, regulation, injury, retirement, on_track, business, world, feeder_series, personality, other",
         },
         { name: "importance", required: true, description: "1 (Mineur) a 5 (Majeur)" },
         { name: "after_round", required: false, description: "Apres quel round (0 = pre-saison)" },
@@ -496,41 +592,34 @@ export default function NewsPage() {
                 ]} />
             </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-display-sm font-semibold text-primary">
-                        News
-                    </h1>
-                    <p className="mt-0.5 text-sm text-tertiary">
-                        {total} article{total !== 1 ? "s" : ""}
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <ImportJsonDialog<NewsImportValues, NewsFormValues>
-                        title="Importer des news"
-                        description="Importez des actualites depuis un fichier JSON."
-                        exampleData={newsExampleJson}
-                        fields={newsFields}
-                        schema={newsImportSchema}
-                        resolve={resolveNews}
-                        onImport={(items) => importNews.mutate({ seasonId, rows: items })}
-                        isPending={importNews.isPending}
-                        trigger={
-                            <Button size="md" color="secondary" iconLeading={Upload01}>
-                                Importer
-                            </Button>
-                        }
-                    />
-                    <CreateNewsDialog
-                        seasonId={seasonId}
-                        universeId={season.universe_id}
-                    />
-                </div>
+            {/* Masthead */}
+            <NewspaperMasthead year={season.year} total={total} />
+
+            {/* Action buttons */}
+            <div className="mb-6 flex items-center justify-end gap-3">
+                <ImportJsonDialog<NewsImportValues, NewsFormValues>
+                    title="Importer des news"
+                    description="Importez des actualites depuis un fichier JSON."
+                    exampleData={newsExampleJson}
+                    fields={newsFields}
+                    schema={newsImportSchema}
+                    resolve={resolveNews}
+                    onImport={(items) => importNews.mutate({ seasonId, rows: items })}
+                    isPending={importNews.isPending}
+                    trigger={
+                        <Button size="md" color="secondary" iconLeading={Upload01}>
+                            Importer
+                        </Button>
+                    }
+                />
+                <CreateNewsDialog
+                    seasonId={seasonId}
+                    universeId={season.universe_id}
+                />
             </div>
 
             {/* Content */}
-            <div className="mt-6">
+            <div>
                 {total === 0 ? (
                     <div className="flex min-h-60 items-center justify-center">
                         <EmptyState size="md">
@@ -559,12 +648,8 @@ export default function NewsPage() {
                     <div className="space-y-8">
                         {grouped.map(([round, items]) => (
                             <div key={round ?? "off"}>
-                                <h2 className="mb-3 text-sm font-semibold text-secondary">
-                                    {round != null
-                                        ? `Round ${round}`
-                                        : "Hors-course"}
-                                </h2>
-                                <div className="flex flex-col gap-3">
+                                <RoundEditionHeader round={round} gpCount={season.gp_count} />
+                                <div className="mt-3 flex flex-col gap-3">
                                     {items.map((n) => (
                                         <NewsCard
                                             key={n.id}
@@ -593,10 +678,7 @@ export default function NewsPage() {
                     seasonId={seasonId}
                     universeId={season.universe_id}
                     news={editingNews}
-                    isOpen={!!editingNews}
-                    onOpenChange={(open) => {
-                        if (!open) setEditingNews(null);
-                    }}
+                    onClose={() => setEditingNews(null)}
                 />
             )}
 
@@ -605,10 +687,7 @@ export default function NewsPage() {
                 <DeleteNewsDialog
                     seasonId={seasonId}
                     news={deletingNews}
-                    isOpen={!!deletingNews}
-                    onOpenChange={(open) => {
-                        if (!open) setDeletingNews(null);
-                    }}
+                    onClose={() => setDeletingNews(null)}
                 />
             )}
         </div>

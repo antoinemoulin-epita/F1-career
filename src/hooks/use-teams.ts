@@ -61,6 +61,7 @@ function normalizeForm(form: TeamFormValues) {
         title_sponsor: form.title_sponsor?.trim() || null,
         sponsor_duration: form.sponsor_duration ?? null,
         sponsor_objective: form.sponsor_objective?.trim() || null,
+        team_identity_id: form.team_identity_id ?? null,
     };
 }
 

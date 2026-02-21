@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import { QueryProvider } from "@/providers/query-provider";
 import { RouteProvider } from "@/providers/router-provider";
 import { Theme } from "@/providers/theme";
@@ -10,6 +10,12 @@ const inter = Inter({
     subsets: ["latin"],
     display: "swap",
     variable: "--font-inter",
+});
+
+const playfair = Playfair_Display({
+    subsets: ["latin"],
+    display: "swap",
+    variable: "--font-playfair",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +35,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body className={cx(inter.variable, "bg-primary antialiased")}>
+            <body className={cx(inter.variable, playfair.variable, "bg-primary antialiased")}>
                 <QueryProvider>
                     <RouteProvider>
                         <Theme>{children}</Theme>

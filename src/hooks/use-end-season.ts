@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { driverKeys } from "@/hooks/use-drivers";
 import { teamKeys } from "@/hooks/use-teams";
+import { carKeys } from "@/hooks/use-cars";
+import { engineSupplierKeys } from "@/hooks/use-engine-suppliers";
 import { seasonKeys } from "@/hooks/use-seasons";
 import { universeKeys } from "@/hooks/use-universes";
 import { staffKeys } from "@/hooks/use-staff";
@@ -26,6 +28,12 @@ export type TeamBudgetChange = {
     surperformance_delta: number; // +1, -1, or 0
 };
 
+export type SponsorEvaluation = {
+    objective_id: string;
+    is_met: boolean;
+    evaluated_value: number | null;
+};
+
 export type ArchiveInput = {
     seasonId: string;
     universeId: string;
@@ -41,6 +49,7 @@ export type ArchiveInput = {
     driverEvolutions: DriverEvolution[];
     teamBudgetChanges: TeamBudgetChange[];
     contractDecrements: boolean;
+    sponsorEvaluations: SponsorEvaluation[];
 };
 
 // ─── Archive season mutation ────────────────────────────────────────────────
@@ -50,20 +59,11 @@ export function useArchiveSeason() {
 
     return useMutation({
         mutationFn: async (input: ArchiveInput) => {
-            const {
-                seasonId,
-                universeId,
-                year,
-                driverEvolutions,
-                teamBudgetChanges,
-            } = input;
-
-            // 1. Insert history_champions record
-            const { error: historyError } = await supabase
-                .from("history_champions")
-                .insert({
-                    universe_id: universeId,
-                    year,
+            const { data, error } = await supabase.rpc("fn_archive_season", {
+                p_payload: {
+                    season_id: input.seasonId,
+                    universe_id: input.universeId,
+                    year: input.year,
                     champion_driver_id: input.championDriverId,
                     champion_driver_name: input.championDriverName,
                     champion_driver_points: input.championDriverPoints,
@@ -72,122 +72,28 @@ export function useArchiveSeason() {
                     champion_team_name: input.championTeamName,
                     champion_team_points: input.championTeamPoints,
                     season_summary: input.seasonSummary,
-                });
-            if (historyError) throw historyError;
-
-            // 2. Apply driver evolutions
-            for (const evo of driverEvolutions) {
-                const totalNoteChange =
-                    evo.potential_change + evo.decline + evo.progression + evo.champion_bonus;
-
-                if (totalNoteChange === 0 && evo.rookie_reveal == null) continue;
-
-                // Fetch current driver data
-                const { data: driver, error: fetchError } = await supabase
-                    .from("drivers")
-                    .select("note, potential_final, potential_revealed, world_titles")
-                    .eq("id", evo.driver_id)
-                    .single();
-                if (fetchError) throw fetchError;
-
-                const updates: Record<string, unknown> = {};
-
-                if (totalNoteChange !== 0) {
-                    const currentNote = driver.note ?? 0;
-                    const maxPotential = driver.potential_final ?? 10;
-                    updates.note = Math.max(1, Math.min(currentNote + totalNoteChange, maxPotential));
-                }
-
-                if (evo.champion_bonus > 0) {
-                    updates.world_titles = (driver.world_titles ?? 0) + 1;
-                }
-
-                if (evo.rookie_reveal != null) {
-                    updates.potential_final = evo.rookie_reveal;
-                    updates.potential_revealed = true;
-                    updates.is_rookie = false;
-                }
-
-                if (Object.keys(updates).length > 0) {
-                    const { error: updateError } = await supabase
-                        .from("drivers")
-                        .update(updates)
-                        .eq("id", evo.driver_id);
-                    if (updateError) throw updateError;
-                }
-            }
-
-            // 3. Apply team budget changes
-            for (const change of teamBudgetChanges) {
-                if (change.surperformance_delta === 0) continue;
-
-                const { data: team, error: fetchError } = await supabase
-                    .from("teams")
-                    .select("surperformance_bonus")
-                    .eq("id", change.team_id)
-                    .single();
-                if (fetchError) throw fetchError;
-
-                const current = team.surperformance_bonus ?? 0;
-                const newValue = Math.max(0, current + change.surperformance_delta);
-
-                const { error: updateError } = await supabase
-                    .from("teams")
-                    .update({ surperformance_bonus: newValue })
-                    .eq("id", change.team_id);
-                if (updateError) throw updateError;
-            }
-
-            // 4. Decrement contracts and increment years_in_team
-            if (input.contractDecrements) {
-                const { data: allDrivers, error: driversError } = await supabase
-                    .from("drivers")
-                    .select("id, contract_years_remaining, years_in_team")
-                    .eq("season_id", seasonId);
-                if (driversError) throw driversError;
-
-                for (const d of allDrivers ?? []) {
-                    const currentContract = d.contract_years_remaining ?? 0;
-                    const currentYears = d.years_in_team ?? 0;
-                    const { error: updateError } = await supabase
-                        .from("drivers")
-                        .update({
-                            contract_years_remaining: Math.max(0, currentContract - 1),
-                            years_in_team: currentYears + 1,
-                        })
-                        .eq("id", d.id);
-                    if (updateError) throw updateError;
-                }
-            }
-
-            // 4b. Decrement staff contracts
-            if (input.contractDecrements) {
-                const { data: allStaff, error: staffError } = await supabase
-                    .from("staff_members")
-                    .select("id, contract_years_remaining, years_in_team")
-                    .eq("season_id", seasonId);
-                if (staffError) throw staffError;
-
-                for (const s of allStaff ?? []) {
-                    const { error: updateError } = await supabase
-                        .from("staff_members")
-                        .update({
-                            contract_years_remaining: Math.max(0, (s.contract_years_remaining ?? 0) - 1),
-                            years_in_team: (s.years_in_team ?? 0) + 1,
-                        })
-                        .eq("id", s.id);
-                    if (updateError) throw updateError;
-                }
-            }
-
-            // 5. Mark season as completed
-            const { error: seasonError } = await supabase
-                .from("seasons")
-                .update({ status: "completed" })
-                .eq("id", seasonId);
-            if (seasonError) throw seasonError;
-
-            return { seasonId, universeId };
+                    driver_evolutions: input.driverEvolutions.map((evo) => ({
+                        driver_id: evo.driver_id,
+                        potential_change: evo.potential_change,
+                        decline: evo.decline,
+                        progression: evo.progression,
+                        champion_bonus: evo.champion_bonus,
+                        rookie_reveal: evo.rookie_reveal,
+                    })),
+                    team_budget_changes: input.teamBudgetChanges.map((c) => ({
+                        team_id: c.team_id,
+                        surperformance_delta: c.surperformance_delta,
+                    })),
+                    contract_decrements: input.contractDecrements,
+                    sponsor_evaluations: input.sponsorEvaluations.map((e) => ({
+                        objective_id: e.objective_id,
+                        is_met: e.is_met,
+                        evaluated_value: e.evaluated_value,
+                    })),
+                },
+            });
+            if (error) throw error;
+            return { seasonId: input.seasonId, universeId: input.universeId, result: data };
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: driverKeys.bySeason(variables.seasonId) });
@@ -196,6 +102,42 @@ export function useArchiveSeason() {
             queryClient.invalidateQueries({ queryKey: seasonKeys.detail(variables.seasonId) });
             queryClient.invalidateQueries({ queryKey: seasonKeys.byUniverse(variables.universeId) });
             queryClient.invalidateQueries({ queryKey: universeKeys.detail(variables.universeId) });
+        },
+    });
+}
+
+// ─── Create next season mutation ────────────────────────────────────────────
+
+type CreateNextSeasonInput = {
+    seasonId: string;
+    universeId: string;
+    year: number;
+};
+
+export function useCreateNextSeason() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ seasonId, universeId, year }: CreateNextSeasonInput) => {
+            const { data, error } = await supabase.rpc("fn_create_next_season", {
+                p_payload: {
+                    season_id: seasonId,
+                    universe_id: universeId,
+                    year,
+                },
+            });
+            if (error) throw error;
+            return { newSeasonId: (data as unknown as { new_season_id: string }).new_season_id };
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: seasonKeys.byUniverse(variables.universeId) });
+            queryClient.invalidateQueries({ queryKey: seasonKeys.current(variables.universeId) });
+            queryClient.invalidateQueries({ queryKey: universeKeys.detail(variables.universeId) });
+            queryClient.invalidateQueries({ queryKey: driverKeys.bySeason(variables.seasonId) });
+            queryClient.invalidateQueries({ queryKey: teamKeys.bySeason(variables.seasonId) });
+            queryClient.invalidateQueries({ queryKey: carKeys.bySeason(variables.seasonId) });
+            queryClient.invalidateQueries({ queryKey: engineSupplierKeys.bySeason(variables.seasonId) });
+            queryClient.invalidateQueries({ queryKey: staffKeys.bySeason(variables.seasonId) });
         },
     });
 }

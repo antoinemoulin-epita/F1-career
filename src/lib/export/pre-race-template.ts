@@ -108,7 +108,7 @@ export function generatePreRaceMarkdown(
         lines.push(`- Caractéristique clé : ${circuit.key_attribute}`);
         lines.push(`- Climat : ${circuit.region_climate}`);
         lines.push(`- Prestige : ${"★".repeat(circuit.prestige)}`);
-        lines.push(`- Probabilité de pluie : ${circuit.rain_probability}%`);
+        lines.push(`- Probabilité de pluie : ${circuit.rain_probability === 0 ? "Sec" : circuit.rain_probability + "%"}`);
     }
 
     // Driver standings

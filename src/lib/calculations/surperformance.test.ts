@@ -192,3 +192,60 @@ describe("calculateAllDriverSurperformances — edge cases", () => {
         expect(calculateAllDriverSurperformances([]).length).toBe(0);
     });
 });
+
+// ─── Non-regression: 4 young drivers with surperformance (Senna/Brundle bug) ─
+
+describe("calculateAllDriverSurperformances — non-regression age 25", () => {
+    it("4 pilotes de 25 ans avec delta >= 2 obtiennent TOUS +1 potentiel", () => {
+        const inputs = [
+            { driver_id: "senna", name: "Ayrton Senna", team: "Lotus", age: 25, predicted_position: 6, final_position: 3 },
+            { driver_id: "brundle", name: "Martin Brundle", team: "Tyrrell", age: 25, predicted_position: 12, final_position: 8 },
+            { driver_id: "de_angelis", name: "Elio de Angelis", team: "Lotus", age: 25, predicted_position: 5, final_position: 2 },
+            { driver_id: "cheever", name: "Eddie Cheever", team: "Alfa Romeo", age: 25, predicted_position: 14, final_position: 10 },
+        ];
+
+        const result = calculateAllDriverSurperformances(inputs);
+
+        // All 4 drivers have delta >= 2 and age = 25 (≤ 26)
+        // Every single one must get potential_change = +1
+        expect(result).toHaveLength(4);
+        for (const driver of result) {
+            expect(driver.delta).toBeGreaterThanOrEqual(2);
+            expect(driver.effect).toBe("positive");
+            expect(driver.potential_change).toBe(1);
+        }
+
+        // Verify each driver individually
+        const sennaResult = result.find((d) => d.driver_id === "senna")!;
+        expect(sennaResult.potential_change).toBe(1);
+        expect(sennaResult.delta).toBe(3);
+
+        const brundleResult = result.find((d) => d.driver_id === "brundle")!;
+        expect(brundleResult.potential_change).toBe(1);
+        expect(brundleResult.delta).toBe(4);
+
+        const deAngelisResult = result.find((d) => d.driver_id === "de_angelis")!;
+        expect(deAngelisResult.potential_change).toBe(1);
+        expect(deAngelisResult.delta).toBe(3);
+
+        const cheeverResult = result.find((d) => d.driver_id === "cheever")!;
+        expect(cheeverResult.potential_change).toBe(1);
+        expect(cheeverResult.delta).toBe(4);
+    });
+
+    it("meme scenario mais age = null → aucun ne recoit +1 potentiel (garde age)", () => {
+        const inputs = [
+            { driver_id: "senna", name: "Ayrton Senna", team: "Lotus", age: null as number | null, predicted_position: 6, final_position: 3 },
+            { driver_id: "brundle", name: "Martin Brundle", team: "Tyrrell", age: null as number | null, predicted_position: 12, final_position: 8 },
+            { driver_id: "de_angelis", name: "Elio de Angelis", team: "Lotus", age: null as number | null, predicted_position: 5, final_position: 2 },
+            { driver_id: "cheever", name: "Eddie Cheever", team: "Alfa Romeo", age: null as number | null, predicted_position: 14, final_position: 10 },
+        ];
+
+        const result = calculateAllDriverSurperformances(inputs);
+
+        // With null age, potential_change must be 0 for all
+        for (const driver of result) {
+            expect(driver.potential_change).toBe(0);
+        }
+    });
+});

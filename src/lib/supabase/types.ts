@@ -3486,6 +3486,10 @@ export type Database = {
       }
     }
     Functions: {
+      fn_archive_season: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       fn_calculate_points: {
         Args: { p_position: number; p_universe_id: string }
         Returns: number
@@ -3497,6 +3501,10 @@ export type Database = {
       fn_calculate_rain_probability: {
         Args: { p_base_probability: number }
         Returns: number
+      }
+      fn_create_next_season: {
+        Args: { p_payload: Json }
+        Returns: Json
       }
       fn_seed_default_points: {
         Args: { p_universe_id: string }

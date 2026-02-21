@@ -43,7 +43,7 @@ export function CircuitSelector({ circuits, onSelect, onCancel }: CircuitSelecto
                 supportingText: [
                     c.country,
                     circuitTypeLabels[c.circuit_type ?? ""] ?? c.circuit_type,
-                    `Pluie base: ${c.base_rain_probability ?? 0}%`,
+                    `Pluie: ${(c.base_rain_probability ?? 0) === 0 ? "Sec" : c.base_rain_probability + "%"}`,
                 ]
                     .filter(Boolean)
                     .join(" · "),

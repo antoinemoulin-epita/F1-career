@@ -55,15 +55,16 @@ const circuitTypeBadgeColor: Record<string, "gray" | "brand" | "blue" | "purple"
 
 function RainBadge({ probability }: { probability: number | null }) {
     const value = probability ?? 0;
-    let color: "gray" | "blue" | "brand" | "warning" | "error" = "gray";
-    if (value >= 60) color = "error";
-    else if (value >= 40) color = "warning";
-    else if (value >= 20) color = "blue";
+    let color: "gray" | "blue" | "warning" | "error" = "gray";
+    let label = "Sec";
+    if (value >= 50) { color = "error"; label = "50%"; }
+    else if (value >= 25) { color = "warning"; label = "25%"; }
+    else if (value >= 10) { color = "blue"; label = "10%"; }
 
     return (
         <Badge size="sm" color={color} type="pill-color">
             <CloudRaining01 className="size-3" aria-hidden="true" />
-            {value}%
+            {label}
         </Badge>
     );
 }

@@ -89,7 +89,7 @@ function CircuitProfileContent() {
                         { label: "Attribut cle", value: keyAttributeLabels[circuit.key_attribute ?? ""] ?? "—" },
                         { label: "Prestige", value: prestigeStars(circuit.prestige) },
                         { label: "Climat", value: climateLabels[circuit.region_climate ?? ""] ?? "—" },
-                        { label: "Proba pluie", value: `${circuit.base_rain_probability ?? 0}%` },
+                        { label: "Proba pluie", value: (circuit.base_rain_probability ?? 0) === 0 ? "Sec" : `${circuit.base_rain_probability}%` },
                     ]}
                 />
 

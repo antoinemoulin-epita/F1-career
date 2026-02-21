@@ -8,6 +8,8 @@ export const teamSchema = z.object({
     nationality: z.enum(validNationalityCodes as [string, ...string[]]).or(z.literal("")).optional(),
     color_primary: z.string().optional().or(z.literal("")),
     color_secondary: z.string().optional().or(z.literal("")),
+    // Identite cross-saison
+    team_identity_id: z.string().uuid().nullable().optional(),
     // Ingenieurs
     engineer_level: z.number().int().min(1).max(3).nullable().optional(),
     // Moteur
@@ -28,6 +30,7 @@ export type TeamFormValues = z.infer<typeof teamSchema>;
 export const teamFormDefaults: TeamFormValues = {
     name: "",
     short_name: "",
+    team_identity_id: null,
     nationality: "",
     color_primary: "",
     color_secondary: "",

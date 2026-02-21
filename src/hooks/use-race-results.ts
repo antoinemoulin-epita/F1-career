@@ -338,10 +338,31 @@ export function useSaveRaceResults() {
                 }
             }
 
-            // Sort by points desc, then wins desc
+            // Tiebreaker countback: build position count arrays per driver
+            // positionCounts[id][pos] = number of times driver finished in that position
+            const driverPositionCounts = new Map<string, Map<number, number>>();
+            for (const r of allResults) {
+                if (r.finish_position == null) continue;
+                let counts = driverPositionCounts.get(r.driver_id);
+                if (!counts) {
+                    counts = new Map();
+                    driverPositionCounts.set(r.driver_id, counts);
+                }
+                counts.set(r.finish_position, (counts.get(r.finish_position) ?? 0) + 1);
+            }
+
+            // Sort by points desc, then countback (most P1s, then most P2s, etc.)
             const sortedDrivers = [...driverStats.entries()].sort((a, b) => {
                 if (b[1].points !== a[1].points) return b[1].points - a[1].points;
-                return b[1].wins - a[1].wins;
+                const countsA = driverPositionCounts.get(a[0]);
+                const countsB = driverPositionCounts.get(b[0]);
+                const maxPos = driverStats.size;
+                for (let pos = 1; pos <= maxPos; pos++) {
+                    const cA = countsA?.get(pos) ?? 0;
+                    const cB = countsB?.get(pos) ?? 0;
+                    if (cB !== cA) return cB - cA;
+                }
+                return 0;
             });
 
             const driverStandingRows = sortedDrivers.map(([driverId, stats], idx) => ({
@@ -391,9 +412,31 @@ export function useSaveRaceResults() {
                 }
             }
 
+            // Tiebreaker countback for constructors: aggregate position counts of their drivers
+            const teamPositionCounts = new Map<string, Map<number, number>>();
+            for (const r of allResults) {
+                if (r.finish_position == null) continue;
+                const teamId = driverTeamMap.get(r.driver_id);
+                if (!teamId) continue;
+                let counts = teamPositionCounts.get(teamId);
+                if (!counts) {
+                    counts = new Map();
+                    teamPositionCounts.set(teamId, counts);
+                }
+                counts.set(r.finish_position, (counts.get(r.finish_position) ?? 0) + 1);
+            }
+
+            const maxPosTeams = driverStats.size;
             const sortedTeams = [...teamStats.entries()].sort((a, b) => {
                 if (b[1].points !== a[1].points) return b[1].points - a[1].points;
-                return b[1].wins - a[1].wins;
+                const countsA = teamPositionCounts.get(a[0]);
+                const countsB = teamPositionCounts.get(b[0]);
+                for (let pos = 1; pos <= maxPosTeams; pos++) {
+                    const cA = countsA?.get(pos) ?? 0;
+                    const cB = countsB?.get(pos) ?? 0;
+                    if (cB !== cA) return cB - cA;
+                }
+                return 0;
             });
 
             const constructorStandingRows = sortedTeams.map(([teamId, stats], idx) => ({

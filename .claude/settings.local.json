@@ -23,7 +23,16 @@
       "Bash(pnpm build:*)",
       "mcp__supabase__get_advisors",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nEnrich staff_members: skills, contracts, end-season integration\n\n- Add 9 columns to staff_members \\(note, potential_min/max/final, potential_revealed, birth_year, contract_years_remaining, years_in_team, is_retiring\\)\n- Create StarRating component with interactive and read-only modes\n- Update staff form with competences and contract sections\n- Enrich staff cards with star ratings, age, and contract badges\n- Add staff contract decrements to end-season wizard\n- Show staff contract status in end-season contracts tab and validation recap\n- Include other pending changes \\(regulations, sponsor objectives, calculations, etc.\\)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nEnrich staff_members: skills, contracts, end-season integration\n\n- Add 9 columns to staff_members \\(note, potential_min/max/final, potential_revealed, birth_year, contract_years_remaining, years_in_team, is_retiring\\)\n- Create StarRating component with interactive and read-only modes\n- Update staff form with competences and contract sections\n- Enrich staff cards with star ratings, age, and contract badges\n- Add staff contract decrements to end-season wizard\n- Show staff contract status in end-season contracts tab and validation recap\n- Include other pending changes \\(regulations, sponsor objectives, calculations, etc.\\)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_logs",
+      "mcp__supabase__get_publishable_keys",
+      "Bash(curl:*)",
+      "Bash(npx next build:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(npx vitest:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

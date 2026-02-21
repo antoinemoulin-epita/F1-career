@@ -11,6 +11,8 @@ interface EvaluationContext {
     constructorStandings: CurrentStandingsConstructor[];
     /** team_id → list of circuit_ids where the team has won */
     teamWinCircuits: Map<string, Set<string>>;
+    /** driver_id → team_id mapping for accurate team matching */
+    driverTeamMap: Map<string, string>;
 }
 
 export function evaluateObjective(
@@ -43,7 +45,7 @@ export function evaluateObjective(
 
         case "wins": {
             const teamDriverIds = ctx.driverStandings
-                .filter((s) => s.team_color === ctx.constructorStandings.find((c) => c.team_id === obj.team_id)?.team_color)
+                .filter((s) => s.driver_id && ctx.driverTeamMap.get(s.driver_id) === obj.team_id)
                 .map((s) => s.driver_id);
             const totalWins = ctx.driverStandings
                 .filter((s) => teamDriverIds.includes(s.driver_id))
@@ -57,7 +59,7 @@ export function evaluateObjective(
 
         case "podiums": {
             const teamDriverIds = ctx.driverStandings
-                .filter((s) => s.team_color === ctx.constructorStandings.find((c) => c.team_id === obj.team_id)?.team_color)
+                .filter((s) => s.driver_id && ctx.driverTeamMap.get(s.driver_id) === obj.team_id)
                 .map((s) => s.driver_id);
             const totalPodiums = ctx.driverStandings
                 .filter((s) => teamDriverIds.includes(s.driver_id))
@@ -95,9 +97,7 @@ export function evaluateObjective(
             const targetDriver = ctx.driverStandings.find((s) => s.driver_id === entityId);
             // find the best-placed driver from our team
             const teamDrivers = ctx.driverStandings.filter(
-                (s) =>
-                    s.team_color ===
-                    ctx.constructorStandings.find((c) => c.team_id === obj.team_id)?.team_color,
+                (s) => s.driver_id && ctx.driverTeamMap.get(s.driver_id) === obj.team_id,
             );
             const bestTeamPos = Math.min(...teamDrivers.map((s) => s.position ?? 99));
             const targetPos = targetDriver?.position ?? 99;
