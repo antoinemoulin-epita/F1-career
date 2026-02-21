@@ -7,9 +7,12 @@ import {
     GridListItem as AriaGridListItem,
     useDragAndDrop,
 } from "react-aria-components";
+import Link from "next/link";
 import {
+    CheckCircle,
     CloudRaining01,
     DotsGrid,
+    Edit05,
     Flag01,
     Plus,
     Trash01,
@@ -135,16 +138,33 @@ function AddRaceDialog({
 
 // ─── CalendarItem ───────────────────────────────────────────────────────────
 
+const statusLabel: Record<string, string> = {
+    scheduled: "Planifie",
+    qualifying_done: "Qualifie",
+    completed: "Termine",
+};
+
+const statusBadgeColor: Record<string, "gray" | "brand" | "success"> = {
+    scheduled: "gray",
+    qualifying_done: "brand",
+    completed: "success",
+};
+
 function CalendarItem({
     entry,
+    seasonId,
     onRemove,
     isRemoving,
 }: {
     entry: CalendarEntryWithCircuit;
+    seasonId: string;
     onRemove: () => void;
     isRemoving: boolean;
 }) {
     const circuit = entry.circuit;
+    const status = entry.status ?? "scheduled";
+    const isQualified = status === "qualifying_done" || status === "completed";
+    const isCompleted = status === "completed";
 
     return (
         <div className="flex w-full items-center gap-4 px-4 py-3">
@@ -176,6 +196,18 @@ function CalendarItem({
                 </p>
             </div>
 
+            {/* Status badge */}
+            <div className="hidden shrink-0 sm:block">
+                <Badge
+                    size="sm"
+                    color={statusBadgeColor[status] ?? "gray"}
+                    type="pill-color"
+                >
+                    {isCompleted && <CheckCircle className="size-3" aria-hidden="true" />}
+                    {statusLabel[status] ?? status}
+                </Badge>
+            </div>
+
             {/* Circuit type badge */}
             <div className="hidden shrink-0 sm:block">
                 {circuit?.circuit_type && (
@@ -189,19 +221,32 @@ function CalendarItem({
                 )}
             </div>
 
-            {/* Key attribute badge */}
-            <div className="hidden shrink-0 sm:block">
-                {circuit?.key_attribute && (
-                    <Badge size="sm" color="gray" type="pill-color">
-                        {circuit.key_attribute}
-                    </Badge>
-                )}
-            </div>
-
             {/* Rain probability */}
             <div className="shrink-0">
                 <RainBadge probability={entry.rain_probability} />
             </div>
+
+            {/* Action links for qualifying / results */}
+            {isQualified && (
+                <Link
+                    href={`/season/${seasonId}/race/${entry.id}/qualifying`}
+                    className="shrink-0"
+                >
+                    <Button size="sm" color="link-gray" aria-label="Modifier qualifications">
+                        Qualifs
+                    </Button>
+                </Link>
+            )}
+            {isCompleted && (
+                <Link
+                    href={`/season/${seasonId}/race/${entry.id}/results`}
+                    className="shrink-0"
+                >
+                    <Button size="sm" color="link-gray" iconLeading={Edit05} aria-label="Modifier resultats">
+                        Course
+                    </Button>
+                </Link>
+            )}
 
             {/* Delete button */}
             <Button
@@ -402,6 +447,7 @@ export default function CalendarPage() {
                                 >
                                     <CalendarItem
                                         entry={entry}
+                                        seasonId={seasonId}
                                         onRemove={() => handleRemove(entry)}
                                         isRemoving={
                                             removeRace.isPending &&
