@@ -70,9 +70,9 @@ export function usePointsSystemForSeason(seasonId: string, universeId: string | 
                 .select("*")
                 .eq("season_id", seasonId)
                 .order("position");
-            if (sError) throw sError;
 
-            if (seasonRows && seasonRows.length > 0) {
+            // If season_id column doesn't exist yet, fall through to universe query
+            if (!sError && seasonRows && seasonRows.length > 0) {
                 return { rows: seasonRows, source: "season" as const };
             }
 
@@ -85,9 +85,20 @@ export function usePointsSystemForSeason(seasonId: string, universeId: string | 
                 .eq("universe_id", universeId)
                 .is("season_id", null)
                 .order("position");
-            if (uError) throw uError;
 
-            return { rows: universeRows ?? [], source: "universe" as const };
+            if (!uError && universeRows && universeRows.length > 0) {
+                return { rows: universeRows, source: "universe" as const };
+            }
+
+            // Final fallback: fetch all universe rows (pre-migration compat)
+            const { data: allRows, error: allError } = await supabase
+                .from("points_system")
+                .select("*")
+                .eq("universe_id", universeId)
+                .order("position");
+            if (allError) throw new Error(allError.message);
+
+            return { rows: allRows ?? [], source: "universe" as const };
         },
         enabled: !!seasonId,
     });
@@ -107,7 +118,7 @@ export function useSaveSeasonPointsSystem() {
                 .from("points_system")
                 .delete()
                 .eq("season_id", input.seasonId);
-            if (delError) throw delError;
+            if (delError) throw new Error(`Delete season points: ${delError.message}`);
 
             // Insert new season-specific rows
             if (input.rows.length > 0) {
@@ -121,7 +132,7 @@ export function useSaveSeasonPointsSystem() {
                             points: r.points,
                         })),
                     );
-                if (insError) throw insError;
+                if (insError) throw new Error(`Insert season points: ${insError.message}`);
             }
         },
         onSuccess: (_data, variables) => {
@@ -140,7 +151,7 @@ export function useResetSeasonPointsSystem() {
                 .from("points_system")
                 .delete()
                 .eq("season_id", input.seasonId);
-            if (error) throw error;
+            if (error) throw new Error(`Reset season points: ${error.message}`);
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: pointsSystemKeys.bySeason(variables.seasonId) });

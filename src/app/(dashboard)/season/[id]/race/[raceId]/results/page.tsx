@@ -387,7 +387,7 @@ export default function RaceResultsPage() {
                 pointsSystemRows,
                 driverTeamMap,
             },
-            { onSuccess: () => router.push(`/season/${seasonId}/calendar`) },
+            { onSuccess: () => router.push(`/season/${seasonId}`) },
         );
     };
 

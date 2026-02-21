@@ -186,7 +186,7 @@ export default function QualifyingPage() {
     const handleSave = () => {
         saveQualifying.mutate(
             { raceId, seasonId, driverIds: placedDriverIds },
-            { onSuccess: () => router.push(`/season/${seasonId}/calendar`) },
+            { onSuccess: () => router.push(`/season/${seasonId}`) },
         );
     };
 

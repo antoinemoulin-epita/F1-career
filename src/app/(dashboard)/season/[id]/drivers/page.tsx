@@ -230,6 +230,7 @@ function DriverRow({
     teamName,
     teamColor,
     teamIdentityId,
+    showDriverRank,
     onEdit,
     onDelete,
 }: {
@@ -237,6 +238,8 @@ function DriverRow({
     teamName: string | null;
     teamColor: string | null;
     teamIdentityId: string | null;
+    /** Only show 1er/2e badges when at least one driver on the team has is_first_driver === true */
+    showDriverRank: boolean;
     onEdit: () => void;
     onDelete: () => void;
 }) {
@@ -314,12 +317,12 @@ function DriverRow({
             </Table.Cell>
             <Table.Cell>
                 <div className="flex items-center gap-1.5">
-                    {driver.team_id && driver.is_first_driver === true && (
+                    {showDriverRank && driver.is_first_driver === true && (
                         <Badge size="sm" color="brand" type="pill-color">
                             1er
                         </Badge>
                     )}
-                    {driver.team_id && driver.is_first_driver === false && (
+                    {showDriverRank && driver.is_first_driver === false && (
                         <Badge size="sm" color="gray" type="pill-color">
                             2e
                         </Badge>
@@ -455,6 +458,15 @@ export default function DriversPage() {
         () => new Map(teams?.map((t) => [t.id, t]) ?? []),
         [teams],
     );
+
+    // Teams where at least one driver has is_first_driver === true (data explicitly set)
+    const teamsWithRank = useMemo(() => {
+        const set = new Set<string>();
+        for (const d of drivers ?? []) {
+            if (d.team_id && d.is_first_driver === true) set.add(d.team_id);
+        }
+        return set;
+    }, [drivers]);
 
     const driverColumns = useMemo(
         () => ({
@@ -636,6 +648,7 @@ export default function DriversPage() {
                                             teamName={team?.name ?? null}
                                             teamColor={team?.color_primary ?? null}
                                             teamIdentityId={team?.team_identity_id ?? null}
+                                            showDriverRank={!!driver.team_id && teamsWithRank.has(driver.team_id)}
                                             onEdit={() => setEditingDriver(driver)}
                                             onDelete={() => setDeletingDriver(driver)}
                                         />
