@@ -838,6 +838,41 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "points_system_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "points_system_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_engine_supplier_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "points_system_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_race_history"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "points_system_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_person_seasons"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "points_system_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "v_team_identity_history"
+            referencedColumns: ["season_id"]
+          },
+          {
             foreignKeyName: "points_system_universe_id_fkey"
             columns: ["universe_id"]
             isOneToOne: false
@@ -1623,8 +1658,6 @@ export type Database = {
           last_name: string
           nationality: string | null
           note: number | null
-          potential_max: number
-          potential_min: number
           role: string
           universe_id: string
         }
@@ -1640,8 +1673,6 @@ export type Database = {
           last_name: string
           nationality?: string | null
           note?: number | null
-          potential_max: number
-          potential_min: number
           role: string
           universe_id: string
         }
@@ -1657,8 +1688,6 @@ export type Database = {
           last_name?: string
           nationality?: string | null
           note?: number | null
-          potential_max?: number
-          potential_min?: number
           role?: string
           universe_id?: string
         }
@@ -2733,70 +2762,6 @@ export type Database = {
           updated_at: string | null
           world_titles: number | null
           years_in_team: number | null
-        }
-        Insert: {
-          acclimatation?: never
-          age?: never
-          birth_year?: number | null
-          career_podiums?: number | null
-          career_points?: number | null
-          career_poles?: number | null
-          career_races?: number | null
-          career_wins?: number | null
-          contract_years_remaining?: number | null
-          created_at?: string | null
-          effective_note?: never
-          first_name?: string | null
-          full_name?: never
-          id?: string | null
-          is_first_driver?: boolean | null
-          is_retiring?: boolean | null
-          is_rookie?: boolean | null
-          last_name?: string | null
-          nationality?: string | null
-          note?: number | null
-          person_id?: string | null
-          potential_final?: number | null
-          potential_max?: number | null
-          potential_min?: number | null
-          potential_revealed?: boolean | null
-          season_id?: string | null
-          team_id?: string | null
-          updated_at?: string | null
-          world_titles?: number | null
-          years_in_team?: number | null
-        }
-        Update: {
-          acclimatation?: never
-          age?: never
-          birth_year?: number | null
-          career_podiums?: number | null
-          career_points?: number | null
-          career_poles?: number | null
-          career_races?: number | null
-          career_wins?: number | null
-          contract_years_remaining?: number | null
-          created_at?: string | null
-          effective_note?: never
-          first_name?: string | null
-          full_name?: never
-          id?: string | null
-          is_first_driver?: boolean | null
-          is_retiring?: boolean | null
-          is_rookie?: boolean | null
-          last_name?: string | null
-          nationality?: string | null
-          note?: number | null
-          person_id?: string | null
-          potential_final?: number | null
-          potential_max?: number | null
-          potential_min?: number | null
-          potential_revealed?: boolean | null
-          season_id?: string | null
-          team_id?: string | null
-          updated_at?: string | null
-          world_titles?: number | null
-          years_in_team?: number | null
         }
         Relationships: [
           {

@@ -30,6 +30,7 @@ import { TableSelectionBar } from "@/components/application/table/table-selectio
 import { BulkDeleteDialog } from "@/components/application/table/bulk-delete-dialog";
 import { Tabs } from "@/components/application/tabs/tabs";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
+import { StarRating } from "@/components/base/star-rating/star-rating";
 import { ImportJsonDialog } from "@/components/forms/import-json-dialog";
 import { StaffPoolForm } from "@/components/forms/staff-pool-form";
 import { useImportStaffPool } from "@/hooks/use-import-staff-pool";
@@ -289,7 +290,7 @@ function DraftStaffPoolDialog({
                                         Recruter {entry.first_name} {entry.last_name}
                                     </h2>
                                     <p className="mt-1 text-sm text-tertiary">
-                                        {staffRoleLabels[entry.role]} — Potentiel : {entry.potential_min}–{entry.potential_max}
+                                        {staffRoleLabels[entry.role]}{entry.note != null ? ` — Note : ${entry.note}/5` : ""}
                                     </p>
                                 </div>
                             </div>
@@ -388,14 +389,11 @@ function StaffPoolRow({
                 </Badge>
             </Table.Cell>
             <Table.Cell>
-                <span className="text-sm text-tertiary">
-                    {entry.note ?? "—"}
-                </span>
-            </Table.Cell>
-            <Table.Cell>
-                <span className="text-sm text-tertiary">
-                    {entry.potential_min}–{entry.potential_max}
-                </span>
+                {entry.note != null ? (
+                    <StarRating value={Number(entry.note)} size="sm" />
+                ) : (
+                    <span className="text-sm text-tertiary">—</span>
+                )}
             </Table.Cell>
             <Table.Cell>
                 <span className="text-sm text-tertiary">
@@ -467,7 +465,6 @@ function StaffPoolTable({
             naissance: (e: StaffPool) => e.birth_year,
             role: (e: StaffPool) => e.role,
             note: (e: StaffPool) => e.note,
-            potentiel: (e: StaffPool) => e.potential_max,
             dispo: (e: StaffPool) => e.available_from_year,
         }),
         [],
@@ -541,7 +538,6 @@ function StaffPoolTable({
                         <Table.Head id="naissance" label="Naissance" allowsSorting />
                         <Table.Head id="role" label="Role" allowsSorting />
                         <Table.Head id="note" label="Note" allowsSorting />
-                        <Table.Head id="potentiel" label="Potentiel" allowsSorting />
                         <Table.Head id="dispo" label="Dispo des" allowsSorting />
                         <Table.Head label="Statut" />
                         <Table.Head label="" />
@@ -593,9 +589,7 @@ const staffExampleJson = JSON.stringify(
             nationality: "GBR",
             birth_year: 1958,
             role: "technical_director",
-            note: 10,
-            potential_min: 9,
-            potential_max: 10,
+            note: 5,
             available_from_year: 2025,
         },
     ],
@@ -609,9 +603,7 @@ const staffFields = [
     { name: "nationality", required: false, description: "Code pays (GBR, FRA, ITA, NED...)" },
     { name: "birth_year", required: false, description: "Annee de naissance (1850–2015)" },
     { name: "role", required: true, description: "principal, technical_director, sporting_director, chief_engineer" },
-    { name: "note", required: false, description: "Note de base (0–10)" },
-    { name: "potential_min", required: true, description: "Potentiel minimum, entier (0–10)" },
-    { name: "potential_max", required: true, description: "Potentiel maximum, entier (0–10, >= min)" },
+    { name: "note", required: false, description: "Note en etoiles (1–5, demi-etoiles)" },
     { name: "available_from_year", required: false, description: "Disponible a partir de (1950–2100)" },
 ];
 

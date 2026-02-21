@@ -8,7 +8,7 @@ const supabase = createClient();
 // ─── Query keys ─────────────────────────────────────────────────────────────
 
 export const statsKeys = {
-    completedSeasons: (universeId: string) => ["stats", "completed-seasons", { universeId }] as const,
+    availableSeasons: (universeId: string) => ["stats", "available-seasons", { universeId }] as const,
     teamsBySeason: (seasonId: string) => ["stats", "teams-by-season", { seasonId }] as const,
     teammateH2H: (seasonId: string, driverIds: string[]) =>
         ["stats", "teammate-h2h", { seasonId, driverIds }] as const,
@@ -58,13 +58,13 @@ export type CircuitStat = {
 
 export function useCompletedSeasons(universeId: string) {
     return useQuery({
-        queryKey: statsKeys.completedSeasons(universeId),
+        queryKey: statsKeys.availableSeasons(universeId),
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("seasons")
                 .select("id, year")
                 .eq("universe_id", universeId)
-                .eq("status", "completed")
+                .in("status", ["completed", "active"])
                 .order("year", { ascending: false });
             if (error) throw error;
             return data as { id: string; year: number }[];
@@ -246,12 +246,12 @@ export function useCircuitStats(universeId: string) {
     return useQuery({
         queryKey: statsKeys.circuitStats(universeId),
         queryFn: async () => {
-            // 1. Completed seasons
+            // 1. Completed + active seasons
             const { data: seasons, error: sErr } = await supabase
                 .from("seasons")
                 .select("id, year")
                 .eq("universe_id", universeId)
-                .eq("status", "completed")
+                .in("status", ["completed", "active"])
                 .order("year", { ascending: true });
             if (sErr) throw sErr;
 
@@ -318,7 +318,7 @@ export function useCircuitStats(universeId: string) {
                 const circuitId = circuit?.id ?? race.circuit_id;
                 const year = seasonYearMap.get(race.season_id) ?? 0;
 
-                const existing = circuitMap.get(circuitId) ?? {
+                const existing: CircuitStat = circuitMap.get(circuitId) ?? {
                     circuitId,
                     circuitName: circuit?.name ?? "",
                     flagEmoji: circuit?.flag_emoji ?? "",

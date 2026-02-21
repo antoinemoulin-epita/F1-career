@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { Select } from "@/components/base/select/select";
+import { StarRating } from "@/components/base/star-rating/star-rating";
 import { useCreateStaffPoolEntry, useUpdateStaffPoolEntry } from "@/hooks/use-staff-pool";
 import { staffPoolSchema, staffPoolFormDefaults, type StaffPoolFormValues } from "@/lib/validators";
 import { nationalityItems } from "@/lib/constants/nationalities";
@@ -67,6 +68,32 @@ function RHFNumberInput({
     );
 }
 
+function RHFStarRating({
+    name,
+    control,
+    label,
+}: {
+    name: keyof StaffPoolFormValues;
+    control: Control<StaffPoolFormValues>;
+    label: string;
+}) {
+    const { field, fieldState } = useController({ name, control });
+    return (
+        <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-secondary">{label}</span>
+            <StarRating
+                value={field.value as number | null}
+                onChange={(v) => field.onChange(v)}
+                size="md"
+                showValue
+            />
+            {fieldState.error && (
+                <span className="text-xs text-error-primary">{fieldState.error.message}</span>
+            )}
+        </div>
+    );
+}
+
 // ─── Section wrapper ────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -102,9 +129,7 @@ export function StaffPoolForm({ universeId, entry, onSuccess, onCancel }: StaffP
                   nationality: entry.nationality ?? "",
                   birth_year: entry.birth_year ?? null,
                   role: entry.role as StaffPoolFormValues["role"],
-                  note: entry.note ?? null,
-                  potential_min: entry.potential_min,
-                  potential_max: entry.potential_max,
+                  note: entry.note != null ? Number(entry.note) : null,
                   available_from_year: entry.available_from_year ?? null,
               }
             : staffPoolFormDefaults,
@@ -128,8 +153,6 @@ export function StaffPoolForm({ universeId, entry, onSuccess, onCancel }: StaffP
 
     const nationalityField = useController({ name: "nationality", control: form.control });
     const roleField = useController({ name: "role", control: form.control });
-    const potentialMin = form.watch("potential_min");
-    const potentialMax = form.watch("potential_max");
 
     return (
         <form onSubmit={onSubmit}>
@@ -166,21 +189,9 @@ export function StaffPoolForm({ universeId, entry, onSuccess, onCancel }: StaffP
                     </Select>
                 </Section>
 
-                {/* Potentiel */}
-                <Section title="Potentiel">
-                    <RHFNumberInput name="note" control={form.control} label="Note de base" placeholder="5" />
-                    <div className="grid grid-cols-2 gap-4">
-                        <RHFNumberInput name="potential_min" control={form.control} label="Potentiel min" placeholder="3" />
-                        <RHFNumberInput name="potential_max" control={form.control} label="Potentiel max" placeholder="7" />
-                    </div>
-                    <div className="rounded-lg bg-secondary p-4">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-secondary">Fourchette</span>
-                            <span className="text-lg font-semibold text-primary">
-                                {potentialMin}–{potentialMax}
-                            </span>
-                        </div>
-                    </div>
+                {/* Note */}
+                <Section title="Note">
+                    <RHFStarRating name="note" control={form.control} label="Note" />
                 </Section>
 
                 {/* Disponibilite */}

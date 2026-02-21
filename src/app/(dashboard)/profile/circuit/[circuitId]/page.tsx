@@ -125,9 +125,10 @@ function CircuitProfileContent() {
                                 <tbody className="divide-y divide-secondary">
                                     {raceHistory.map((race) => {
                                         const season = race.season as { year: number } | null;
-                                        const p1 = race.podiums.find((p) => p.finish_position === 1);
-                                        const p2 = race.podiums.find((p) => p.finish_position === 2);
-                                        const p3 = race.podiums.find((p) => p.finish_position === 3);
+                                        type Podium = (typeof race.podiums)[number];
+                                        const p1 = race.podiums.find((p: Podium) => p.finish_position === 1);
+                                        const p2 = race.podiums.find((p: Podium) => p.finish_position === 2);
+                                        const p3 = race.podiums.find((p: Podium) => p.finish_position === 3);
 
                                         const driverName = (d: typeof p1) => {
                                             if (!d?.driver) return "—";

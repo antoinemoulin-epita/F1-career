@@ -62,11 +62,11 @@ function ArcCard({
     const statusKey = arc.status ?? "signal";
     const importance = arc.importance ?? 0;
 
-    const drivers = (arc.related_driver_ids ?? [])
-        .map((id) => entities?.drivers.get(id))
+    const drivers = ((arc.related_driver_ids ?? []) as string[])
+        .map((id: string) => entities?.drivers.get(id))
         .filter((d): d is NonNullable<typeof d> => !!d);
-    const teams = (arc.related_team_ids ?? [])
-        .map((id) => entities?.teams.get(id))
+    const teams = ((arc.related_team_ids ?? []) as string[])
+        .map((id: string) => entities?.teams.get(id))
         .filter((t): t is NonNullable<typeof t> => !!t);
 
     return (

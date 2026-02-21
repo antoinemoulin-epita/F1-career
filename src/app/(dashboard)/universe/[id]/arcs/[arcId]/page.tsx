@@ -32,16 +32,16 @@ export default function ArcDetailPage() {
     );
 
     // Resolve related entity IDs to names and identity IDs for linking
-    const driverIds = useMemo(() => arc?.related_driver_ids ?? [], [arc]);
-    const teamIds = useMemo(() => arc?.related_team_ids ?? [], [arc]);
+    const driverIds = useMemo(() => (arc?.related_driver_ids ?? []) as string[], [arc]);
+    const teamIds = useMemo(() => (arc?.related_team_ids ?? []) as string[], [arc]);
     const { data: entities } = useArcRelatedEntities(driverIds, teamIds);
 
     const drivers = useMemo(
-        () => driverIds.map((id) => entities?.drivers.get(id)).filter((d): d is NonNullable<typeof d> => !!d),
+        () => driverIds.map((id: string) => entities?.drivers.get(id)).filter((d): d is NonNullable<typeof d> => !!d),
         [driverIds, entities],
     );
     const teams = useMemo(
-        () => teamIds.map((id) => entities?.teams.get(id)).filter((t): t is NonNullable<typeof t> => !!t),
+        () => teamIds.map((id: string) => entities?.teams.get(id)).filter((t): t is NonNullable<typeof t> => !!t),
         [teamIds, entities],
     );
 

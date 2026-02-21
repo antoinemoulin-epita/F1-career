@@ -27,8 +27,6 @@ export function useImportStaffPool() {
                 birth_year: form.birth_year ?? null,
                 role: form.role,
                 note: form.note ?? null,
-                potential_min: form.potential_min,
-                potential_max: form.potential_max,
                 available_from_year: form.available_from_year ?? null,
             }));
 

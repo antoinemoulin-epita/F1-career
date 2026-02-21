@@ -37,8 +37,6 @@ function normalizeForm(form: StaffPoolFormValues) {
         birth_year: form.birth_year ?? null,
         role: form.role,
         note: form.note ?? null,
-        potential_min: form.potential_min,
-        potential_max: form.potential_max,
         available_from_year: form.available_from_year ?? null,
     };
 }
@@ -151,6 +149,7 @@ export function useDraftStaffPoolEntry() {
             if (personError) throw personError;
 
             // 2. Create staff_member in the target season
+            const noteValue = entry.note ?? 3;
             const { error: staffError } = await supabase
                 .from("staff_members")
                 .insert({
@@ -158,9 +157,11 @@ export function useDraftStaffPoolEntry() {
                     season_id: seasonId,
                     team_id: teamId,
                     role: entry.role,
-                    note: entry.note ?? 3,
-                    potential_min: entry.potential_min,
-                    potential_max: entry.potential_max,
+                    note: noteValue,
+                    potential_min: noteValue,
+                    potential_max: noteValue,
+                    potential_final: noteValue,
+                    potential_revealed: true,
                     years_in_team: 1,
                     contract_years_remaining: 3,
                 })
