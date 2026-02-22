@@ -59,14 +59,15 @@ type StaffWithPerson = StaffMember & {
 
 // ─── Steps config ───────────────────────────────────────────────────────────
 
-type StepId = "champions" | "surperformance" | "evolutions" | "contracts" | "rookies" | "budgets" | "objectives" | "validation";
+type StepId = "champions" | "surperformance" | "rookies" | "potentiel" | "progression" | "contracts" | "budgets" | "objectives" | "validation";
 
 const STEPS: { id: StepId; label: string; icon: FC }[] = [
     { id: "champions", label: "Champions", icon: Trophy01 },
     { id: "surperformance", label: "Surperformances", icon: Zap },
-    { id: "evolutions", label: "Evolutions", icon: Star01 },
-    { id: "contracts", label: "Contrats", icon: File06 },
     { id: "rookies", label: "Rookies", icon: Target04 },
+    { id: "potentiel", label: "Potentiel", icon: Star01 },
+    { id: "progression", label: "Progression", icon: Star01 },
+    { id: "contracts", label: "Contrats", icon: File06 },
     { id: "budgets", label: "Budgets", icon: CurrencyDollar },
     { id: "objectives", label: "Objectifs", icon: Target04 },
     { id: "validation", label: "Validation", icon: FileCheck02 },
@@ -190,18 +191,26 @@ export default function EndSeasonPage() {
         [drivers],
     );
 
-    // Drivers eligible for progression (age ≤ 26, note < potential_final)
+    // Drivers eligible for progression (age ≤ 26, note < effective potential ceiling)
+    // The ceiling accounts for: rookie reveal (step 3), decline, champion bonus, surperformance (step 4)
     const progressingDrivers = useMemo(
         () =>
-            drivers.filter(
-                (d) =>
-                    d.age != null &&
-                    d.age <= 26 &&
-                    d.note != null &&
-                    d.potential_final != null &&
-                    d.note < d.potential_final,
-            ),
-        [drivers],
+            drivers.filter((d) => {
+                if (d.age == null || d.age > 26 || d.note == null || d.id == null) return false;
+                // Effective ceiling: rookie reveal value > potential_final > potential_max
+                const baseCeiling = rookieReveals.has(d.id)
+                    ? (rookieReveals.get(d.id) ?? d.potential_max ?? 10)
+                    : (d.potential_final ?? d.potential_max);
+                if (baseCeiling == null) return false;
+                // Apply potential modifications from step 4 (decline, champion, surperf)
+                const surp = surperfData?.drivers.find((s) => s.driver_id === d.id);
+                const potentialChange = (surp?.potential_change ?? 0)
+                    + (declineEnabled.get(d.id) ? -1 : 0)
+                    + (d.id === championDriver?.driver_id && championBonusEnabled && !championBonusCapped ? 1 : 0);
+                const effectiveCeiling = Math.max(1, baseCeiling + potentialChange);
+                return d.note < effectiveCeiling;
+            }),
+        [drivers, rookieReveals, surperfData, declineEnabled, championDriver, championBonusEnabled, championBonusCapped],
     );
 
     // Contract status
@@ -855,8 +864,8 @@ export default function EndSeasonPage() {
                     </div>
                 </Tabs.Panel>
 
-                {/* Step 3: Driver evolutions */}
-                <Tabs.Panel id="evolutions" className="mt-6">
+                {/* Step 4: Potentiel (champion bonus + declines) */}
+                <Tabs.Panel id="potentiel" className="mt-6">
                     <div className="space-y-4">
                         {/* Champion bonus */}
                         {championDriver && (
@@ -899,7 +908,7 @@ export default function EndSeasonPage() {
                                                     })
                                                 }
                                             />
-                                            <Badge size="sm" color="error" type="pill-color">-1 note</Badge>
+                                            <Badge size="sm" color="error" type="pill-color">-1 potentiel</Badge>
                                         </div>
                                     ))}
                                 </div>
@@ -907,15 +916,28 @@ export default function EndSeasonPage() {
                                 <p className="text-sm text-tertiary">Aucun pilote concerne</p>
                             )}
                         </SectionCard>
+                    </div>
+                </Tabs.Panel>
 
-                        {/* Progressions */}
-                        <SectionCard title="Progressions (age ≤ 26, note &lt; potentiel)" icon={Star01} color="success">
-                            {progressingDrivers.length > 0 ? (
-                                <div className="space-y-2">
-                                    {progressingDrivers.map((d) => (
+                {/* Step 5: Progression (note +1) */}
+                <Tabs.Panel id="progression" className="mt-6">
+                    <SectionCard title="Progressions (age ≤ 26, note &lt; potentiel effectif)" icon={Star01} color="success">
+                        {progressingDrivers.length > 0 ? (
+                            <div className="space-y-2">
+                                {progressingDrivers.map((d) => {
+                                    const baseCeiling = rookieReveals.has(d.id!)
+                                        ? (rookieReveals.get(d.id!) ?? d.potential_max ?? 10)
+                                        : (d.potential_final ?? d.potential_max);
+                                    const surp = surperfData?.drivers.find((s) => s.driver_id === d.id);
+                                    const potentialChange = (surp?.potential_change ?? 0)
+                                        + (declineEnabled.get(d.id!) ? -1 : 0)
+                                        + (d.id === championDriver?.driver_id && championBonusEnabled && !championBonusCapped ? 1 : 0);
+                                    const effectiveCeiling = Math.max(1, (baseCeiling ?? 10) + potentialChange);
+
+                                    return (
                                         <div key={d.id} className="flex items-center justify-between">
                                             <Checkbox
-                                                label={`${d.full_name} (${d.age} ans, note ${d.note} → pot. ${d.potential_final})`}
+                                                label={`${d.full_name} (${d.age} ans, note ${d.note} → pot. ${effectiveCeiling})`}
                                                 isSelected={progressionEnabled.get(d.id!) ?? true}
                                                 onChange={() =>
                                                     setProgressionEnabled((prev) => {
@@ -927,13 +949,13 @@ export default function EndSeasonPage() {
                                             />
                                             <Badge size="sm" color="success" type="pill-color">+1 note</Badge>
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-tertiary">Aucun pilote concerne</p>
-                            )}
-                        </SectionCard>
-                    </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-tertiary">Aucun pilote concerne</p>
+                        )}
+                    </SectionCard>
                 </Tabs.Panel>
 
                 {/* Step: Contracts */}
